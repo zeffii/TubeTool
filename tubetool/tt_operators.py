@@ -39,8 +39,9 @@ def perform_simple_tube(oper, context):
 
     # subdiv, handle_ext_1, handle_ext_2:
 
-    obj = bpy.context.edit_object
-    me = obj.data
+    obj_main = bpy.context.edit_object
+    mw = obj_main.matrix_world
+    me = obj_main.data
     bm = bmesh.from_edit_mesh(me)
 
     # get active face indices
@@ -56,8 +57,8 @@ def perform_simple_tube(oper, context):
 
     # This will automatically scale the bezierpoint radii as a
     # function of the size of the polygons
-    bevel_depth = (medians[0] - faces[0].verts[0].co).length
-    scale2 = (medians[1] - faces[1].verts[0].co).length
+    bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
+    scale2 = (medians[1] - (faces[1].verts[0].co)).length
     op2_scale = scale2 / bevel_depth
 
     def add_curve(medians, normals, curvename):
@@ -66,6 +67,7 @@ def perform_simple_tube(oper, context):
 
         obj = bpy.data.objects.new('Obj' + curvename, curvedata)
         obj.location = (0, 0, 0)  # object origin
+        obj.matrix_world = mw.copy()
         bpy.context.scene.objects.link(obj)
 
         polyline = curvedata.splines.new('BEZIER')
