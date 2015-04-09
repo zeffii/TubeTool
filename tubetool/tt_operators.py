@@ -39,8 +39,9 @@ def perform_simple_tube(oper, context):
 
     # subdiv, handle_ext_1, handle_ext_2:
 
-    obj = bpy.context.edit_object
-    me = obj.data
+    obj_main = bpy.context.edit_object
+    mw = obj_main.matrix_world
+    me = obj_main.data
     bm = bmesh.from_edit_mesh(me)
 
     # get active face indices
