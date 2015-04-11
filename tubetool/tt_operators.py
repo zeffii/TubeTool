@@ -77,15 +77,17 @@ def update_simple_tube(oper, context):
         obj.show_wire = oper.show_wire
 
         # Point 0
+        # default scale = 1
         point1 = polyline.bezier_points[0]
         co = medians[0]
+        point1.radius = 1 * oper.main_scale * oper.point1_scale
         point1.co = co
         point1.handle_left = co - (normals[0] * oper.handle_ext_1)
         point1.handle_right = co + (normals[0] * oper.handle_ext_1)
 
         # Point 1
         point2 = polyline.bezier_points[1]
-        point2.radius = point1.radius * op2_scale
+        point2.radius = (1 * op2_scale) * oper.main_scale * oper.point2_scale
         co = medians[1]
         point2.co = co
         point2.handle_right = co - (normals[1] * oper.handle_ext_2)
@@ -121,18 +123,30 @@ class AddSimpleTube(bpy.types.Operator):
     show_wire = BoolProperty(default=False)
     end_operator = BoolProperty(default=False)  # unused .
 
+    main_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
+    point1_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
+    point2_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
+
     def draw(self, context):
         layout = self.layout
+        
         col = layout.column()
         col.prop(self, "subdiv", text="sub V")
         col.prop(self, "tube_resolution_u", text="sub U")
+        col.prop(self, "main_scale", text="overall scale")
 
-        col.prop(self, "handle_ext_1", text="handle 1")
-        col.prop(self, "handle_ext_2", text="handle 2")
+        col.separator()
+
+        row = col.row()
+        row.prop(self, "handle_ext_1", text="handle 1")
+        row.prop(self, "point1_scale", text="radius 1")
+        row = col.row()
+        row.prop(self, "handle_ext_2", text="handle 2")
+        row.prop(self, "point2_scale", text="radius 2")
 
         row = layout.row()
-        row.prop(self, "show_smooth", text="show smooth")
-        row.prop(self, "show_wire", text="show wire")
+        row.prop(self, "show_smooth", text="show smooth", toggle=True)
+        row.prop(self, "show_wire", text="show wire", toggle=True)
 
     def __init__(self):
         print("Start")
