@@ -70,10 +70,11 @@ def update_simple_tube(oper, context):
         curvedata = obj.data
         polyline = curvedata.splines[0]
 
-        polyline.use_smooth = False
+        polyline.use_smooth = oper.show_smooth
         obj.data.fill_mode = 'FULL'
         obj.data.bevel_depth = bevel_depth
         obj.data.bevel_resolution = oper.subdiv
+        obj.show_wire = oper.show_wire
 
         # Point 0
         point1 = polyline.bezier_points[0]
@@ -90,7 +91,8 @@ def update_simple_tube(oper, context):
         point2.handle_right = co - (normals[1] * oper.handle_ext_2)
         point2.handle_left = co + (normals[1] * oper.handle_ext_2)
 
-        polyline.order_u = len(polyline.points) - 1
+        # polyline.order_u = len(polyline.points) - 1
+        polyline.resolution_u = oper.tube_resolution_u
 
     print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
@@ -107,14 +109,30 @@ class AddSimpleTube(bpy.types.Operator):
 
     # Dummy variables for the time being
     subdiv = IntProperty(
-        name="unused_property",
-        description="no describing",
-        default=4, min=1, max=16)
+        name="Profile Subdivision",
+        description="subdivision level for the profile (circumference)",
+        default=4, min=0, max=16)
+    tube_resolution_u = IntProperty(min=0, default=12, max=30)
 
     handle_ext_1 = FloatProperty(min=-4.0, default=2.0, max=4.0)
     handle_ext_2 = FloatProperty(min=-4.0, default=2.0, max=4.0)
 
-    end_operator = BoolProperty(default=False)
+    show_smooth = BoolProperty(default=False)
+    show_wire = BoolProperty(default=False)
+    end_operator = BoolProperty(default=False)  # unused .
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.prop(self, "subdiv", text="sub V")
+        col.prop(self, "tube_resolution_u", text="sub U")
+
+        col.prop(self, "handle_ext_1", text="handle 1")
+        col.prop(self, "handle_ext_2", text="handle 2")
+
+        row = layout.row()
+        row.prop(self, "show_smooth", text="show smooth")
+        row.prop(self, "show_wire", text="show wire")
 
     def __init__(self):
         print("Start")
@@ -153,10 +171,9 @@ class AddSimpleTube(bpy.types.Operator):
         return {'FINISHED'}
 
     def modal(self, context, event):
-        if self.end_operator:
+        if event.type == 'RET' and event.value == 'PRESS':
             return {'FINISHED'}
 
-        # update_simple_tube(self, context)
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
