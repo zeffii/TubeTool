@@ -24,7 +24,10 @@
 import bpy
 import bmesh
 from mathutils import Vector
-from bpy.props import IntProperty, FloatProperty
+
+from bpy.props import (
+    IntProperty, FloatProperty, StringProperty, BoolProperty
+)
 
 
 def median(face):
@@ -35,9 +38,9 @@ def median(face):
     return med / len(face.verts)
 
 
-def perform_simple_tube(oper, context):
+def update_simple_tube(oper, context):
 
-    # subdiv, handle_ext_1, handle_ext_2:
+    generated_name = oper.generated_name
 
     obj_main = bpy.context.edit_object
     mw = obj_main.matrix_world
@@ -61,42 +64,36 @@ def perform_simple_tube(oper, context):
     scale2 = (medians[1] - (faces[1].verts[0].co)).length
     op2_scale = scale2 / bevel_depth
 
-    def add_curve(medians, normals, curvename):
-        curvedata = bpy.data.curves.new(name=curvename, type='CURVE')
-        curvedata.dimensions = '3D'
+    def modify_curve(medians, normals, curvename):
+        print('this happens')
+        obj = bpy.data.objects[generated_name]
+        curvedata = obj.data
+        polyline = curvedata.splines[0]
 
-        obj = bpy.data.objects.new('Obj' + curvename, curvedata)
-        obj.location = (0, 0, 0)  # object origin
-        obj.matrix_world = mw.copy()
-        bpy.context.scene.objects.link(obj)
-
-        polyline = curvedata.splines.new('BEZIER')
-        polyline.bezier_points.add(1)
         polyline.use_smooth = False
-
         obj.data.fill_mode = 'FULL'
         obj.data.bevel_depth = bevel_depth
         obj.data.bevel_resolution = oper.subdiv
 
         # Point 0
-        point = polyline.bezier_points[0]
+        point1 = polyline.bezier_points[0]
         co = medians[0]
-        point.co = co
-        point.handle_left = co - (normals[0] * 2 * oper.handle_ext_1)
-        point.handle_right = co + (normals[0] * 2)
+        point1.co = co
+        point1.handle_left = co - (normals[0] * oper.handle_ext_1)
+        point1.handle_right = co + (normals[0] * oper.handle_ext_1)
 
         # Point 1
-        point = polyline.bezier_points[1]
-        point.radius *= op2_scale
+        point2 = polyline.bezier_points[1]
+        point2.radius = point1.radius * op2_scale
         co = medians[1]
-        point.co = co
-        point.handle_right = co - (normals[1] * 2 * oper.handle_ext_2)
-        point.handle_left = co + (normals[1] * 2)
+        point2.co = co
+        point2.handle_right = co - (normals[1] * oper.handle_ext_2)
+        point2.handle_left = co + (normals[1] * oper.handle_ext_2)
 
         polyline.order_u = len(polyline.points) - 1
 
-    add_curve(medians, normals, "curvename")
-    # bm.free()
+    print('generated name:', generated_name)
+    modify_curve(medians, normals, generated_name)
 
 
 class AddSimpleTube(bpy.types.Operator):
@@ -105,17 +102,68 @@ class AddSimpleTube(bpy.types.Operator):
     bl_label = "Add Simple Tube"
     bl_options = {'REGISTER', 'UNDO'}
 
+    base_name = StringProperty(default='TT_tube')
+    generated_name = StringProperty(default='')
+
+    # Dummy variables for the time being
     subdiv = IntProperty(
-        name="num profile verts",
-        description="how many verts in profile shape",
+        name="unused_property",
+        description="no describing",
         default=4, min=1, max=16)
 
-    handle_ext_1 = FloatProperty(min=0.001, default=1.0, max=4.0)
-    handle_ext_2 = FloatProperty(min=0.001, default=1.0, max=4.0)
+    handle_ext_1 = FloatProperty(min=-4.0, default=2.0, max=4.0)
+    handle_ext_2 = FloatProperty(min=-4.0, default=2.0, max=4.0)
+
+    end_operator = BoolProperty(default=False)
+
+    def __init__(self):
+        print("Start")
+        '''
+            - create curve
+            - assign default values
+            - add to scene
+            - record given name
+        '''
+        scn = bpy.context.scene
+        obj_main = bpy.context.edit_object
+        mw = obj_main.matrix_world
+
+        curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
+        curvedata.dimensions = '3D'
+
+        obj = bpy.data.objects.new('Obj_' + curvedata.name, curvedata)
+        obj.location = (0, 0, 0)  # object origin
+        bpy.context.scene.objects.link(obj)
+        self.generated_name = obj.name
+
+        obj.matrix_world = mw.copy()
+
+        polyline = curvedata.splines.new('BEZIER')
+        polyline.bezier_points.add(1)
+        polyline.use_smooth = False
+        obj.data.fill_mode = 'FULL'
+
+        update_simple_tube(self, bpy.context)
+
+    def __del__(self):
+        print("End")
 
     def execute(self, context):
-        perform_simple_tube(self, context)
+        update_simple_tube(self, context)
         return {'FINISHED'}
+
+    def modal(self, context, event):
+        if self.end_operator:
+            return {'FINISHED'}
+
+        # update_simple_tube(self, context)
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+
+        self.execute(context)
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 
 def register():
