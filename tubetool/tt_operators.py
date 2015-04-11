@@ -127,6 +127,16 @@ class AddSimpleTube(bpy.types.Operator):
     point1_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
     point2_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
 
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        if (not obj) or (not obj.type == 'MESH'):
+            return
+ 
+        if obj.mode == 'EDIT' and obj.data.total_face_sel == 2:
+            return True        
+
+
     def draw(self, context):
         layout = self.layout
         
@@ -148,14 +158,55 @@ class AddSimpleTube(bpy.types.Operator):
         row.prop(self, "show_smooth", text="show smooth", toggle=True)
         row.prop(self, "show_wire", text="show wire", toggle=True)
 
-    def __init__(self):
-        print("Start")
-        '''
-            - create curve
-            - assign default values
-            - add to scene
-            - record given name
-        '''
+    # def __init__(self):
+    #     print("Start")
+    #     '''
+    #         - create curve
+    #         - assign default values
+    #         - add to scene
+    #         - record given name
+    #     '''
+    #     scn = bpy.context.scene
+    #     obj_main = bpy.context.edit_object
+    #     mw = obj_main.matrix_world
+
+    #     curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
+    #     curvedata.dimensions = '3D'
+
+    #     obj = bpy.data.objects.new('Obj_' + curvedata.name, curvedata)
+    #     obj.location = (0, 0, 0)  # object origin
+    #     bpy.context.scene.objects.link(obj)
+    #     self.generated_name = obj.name
+
+    #     obj.matrix_world = mw.copy()
+
+    #     polyline = curvedata.splines.new('BEZIER')
+    #     polyline.bezier_points.add(1)
+    #     polyline.use_smooth = False
+    #     obj.data.fill_mode = 'FULL'
+
+    #     update_simple_tube(self, bpy.context)
+
+    # def __del__(self):
+    #     print("End")
+
+    # def execute(self, context):
+    #     print('execute triggered')
+    #     update_simple_tube(self, context)
+    #     return {'FINISHED'}
+
+    def modal(self, context, event):
+        # this never gets called... wtf.
+        print('modal triggered')
+        if event.type in {'ESC'} and event.value in {'RELEASE'}:
+            print('done!')
+            return {'FINISHED'}
+
+        update_simple_tube(self, context)
+        return {'PASS_THROUGH'}
+
+    def invoke(self, context, event):
+        print('invoke triggered')
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
         mw = obj_main.matrix_world
@@ -177,22 +228,6 @@ class AddSimpleTube(bpy.types.Operator):
 
         update_simple_tube(self, bpy.context)
 
-    def __del__(self):
-        print("End")
-
-    def execute(self, context):
-        update_simple_tube(self, context)
-        return {'FINISHED'}
-
-    def modal(self, context, event):
-        if event.type == 'RET' and event.value == 'PRESS':
-            return {'FINISHED'}
-
-        return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-
-        self.execute(context)
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
