@@ -105,7 +105,7 @@ class AddSimpleTube(bpy.types.Operator):
     base_name = StringProperty(default='TT_tube')
     generated_name = StringProperty(default='')
 
-    # # Dummy variables for the time being
+    # Dummy variables for the time being
     subdiv = IntProperty(
         name="unused_property",
         description="no describing",
@@ -142,7 +142,7 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.bezier_points.add(1)
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
-        
+
         update_simple_tube(self, bpy.context)
 
     def __del__(self):
@@ -165,36 +165,6 @@ class AddSimpleTube(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-'''
-class ModalOperator(bpy.types.Operator):
-    bl_idname = "object.modal_operator"
-    bl_label = "Simple Modal Operator"
-
-
-    def execute(self, context):
-        context.object.location.x = self.value / 100.0
-        return {'FINISHED'}
-
-    def modal(self, context, event):
-        if event.type == 'MOUSEMOVE':  # Apply
-            self.value = event.mouse_x
-            self.execute(context)
-        elif event.type == 'LEFTMOUSE':  # Confirm
-            return {'FINISHED'}
-        elif event.type in ('RIGHTMOUSE', 'ESC'):  # Cancel
-            context.object.location.x = self.init_loc_x
-            return {'CANCELLED'}
-
-        return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-        self.init_loc_x = context.object.location.x
-        self.value = event.mouse_x
-        self.execute(context)
-
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
-'''
 
 def register():
     bpy.utils.register_class(AddSimpleTube)
@@ -202,4 +172,3 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(AddSimpleTube)
-
