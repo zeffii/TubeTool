@@ -30,6 +30,25 @@ from bpy.props import (
 )
 
 
+class TubeEnderOps(bpy.types.Operator):
+
+    bl_idname = "object.end_tube_operator"
+    bl_label = "End Tube Operator"
+    # bl_options = {'REGISTER', 'UNDO'}
+
+    fn = bpy.props.StringProperty(default='')
+
+    def dispatch(self, context, type_op):
+        if type_op == 'end_operator':
+            print(dir(context))
+            print('ending operator')
+
+    def execute(self, context):
+        self.dispatch(context, self.fn)
+        return {'FINISHED'}
+
+
+
 def median(face):
     med = Vector()
     for vert in face.verts:
@@ -50,7 +69,12 @@ def update_simple_tube(oper, context):
     # get active face indices
     medians = []
     normals = []
-    faces = [f for f in bm.faces if f.select]
+
+    if not oper.flip_u:
+        faces = [f for f in bm.faces if f.select]
+    else:
+        faces = list(reversed([f for f in bm.faces if f.select]))
+
     for f in faces:
         if len(medians) > 2:
             # dont select more than 2 faces.
@@ -76,22 +100,24 @@ def update_simple_tube(oper, context):
         obj.data.bevel_resolution = oper.subdiv
         obj.show_wire = oper.show_wire
 
+        pointA, pointB = [0, -1] if not oper.flip_v else [-1, 0]
+
         # Point 0
         # default scale = 1
-        point1 = polyline.bezier_points[0]
+        point1 = polyline.bezier_points[pointA]
         co = medians[0]
         point1.radius = 1 * oper.main_scale * oper.point1_scale
         point1.co = co
-        point1.handle_left = co - (normals[0] * oper.handle_ext_1)
-        point1.handle_right = co + (normals[0] * oper.handle_ext_1)
+        point1.handle_left = (co - (normals[0] * oper.handle_ext_1)) 
+        point1.handle_right = (co + (normals[0] * oper.handle_ext_1)) 
 
         # Point 1
-        point2 = polyline.bezier_points[1]
+        point2 = polyline.bezier_points[pointB]
         point2.radius = (1 * op2_scale) * oper.main_scale * oper.point2_scale
         co = medians[1]
         point2.co = co
-        point2.handle_right = co - (normals[1] * oper.handle_ext_2)
-        point2.handle_left = co + (normals[1] * oper.handle_ext_2)
+        point2.handle_right = (co - (normals[1] * oper.handle_ext_2)) 
+        point2.handle_left = (co + (normals[1] * oper.handle_ext_2)) 
 
         # polyline.order_u = len(polyline.points) - 1
         polyline.resolution_u = oper.tube_resolution_u
@@ -127,6 +153,9 @@ class AddSimpleTube(bpy.types.Operator):
     point1_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
     point2_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
 
+    flip_v = BoolProperty()
+    flip_u = BoolProperty()    
+
     def draw(self, context):
         layout = self.layout
         
@@ -147,6 +176,13 @@ class AddSimpleTube(bpy.types.Operator):
         row = layout.row()
         row.prop(self, "show_smooth", text="show smooth", toggle=True)
         row.prop(self, "show_wire", text="show wire", toggle=True)
+
+        col = layout.column()
+        col.separator()
+        row = col.row()
+        row.prop(self, "flip_u", text='flip u sides', toggle=True)
+        row.prop(self, "flip_v", text='flip v sides', toggle=True)
+        # k = row.operator("object.end_tube_operator", text="Finalize").fn = 'end_operator'
 
     def __init__(self):
         print("Start")
@@ -194,12 +230,15 @@ class AddSimpleTube(bpy.types.Operator):
 
         self.execute(context)
         context.window_manager.modal_handler_add(self)
+        print('invoked')
         return {'RUNNING_MODAL'}
 
 
 def register():
+    bpy.utils.register_class(TubeEnderOps)
     bpy.utils.register_class(AddSimpleTube)
 
 
 def unregister():
     bpy.utils.unregister_class(AddSimpleTube)
+    bpy.utils.unregister_class(TubeEnderOps)
