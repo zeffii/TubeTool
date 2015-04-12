@@ -103,7 +103,7 @@ def update_simple_tube(oper, context):
         pointA, pointB = [0, -1] if not oper.flip_v else [-1, 0]
 
         # Point 0
-        # default scale = 1
+        ''' default scale or radius point1 == 1 '''
         point1 = polyline.bezier_points[pointA]
         co = medians[0]
         point1.radius = 1 * oper.main_scale * oper.point1_scale
@@ -119,7 +119,6 @@ def update_simple_tube(oper, context):
         point2.handle_right = (co - (normals[1] * oper.handle_ext_2)) 
         point2.handle_left = (co + (normals[1] * oper.handle_ext_2)) 
 
-        # polyline.order_u = len(polyline.points) - 1
         polyline.resolution_u = oper.tube_resolution_u
 
     print('generated name:', generated_name)
@@ -174,14 +173,17 @@ class AddSimpleTube(bpy.types.Operator):
         row.prop(self, "point2_scale", text="radius 2")
 
         row = layout.row()
-        row.prop(self, "show_smooth", text="show smooth", toggle=True)
-        row.prop(self, "show_wire", text="show wire", toggle=True)
+        split = row.split(percentage=0.5)
+        col_left = split.column()
 
-        col = layout.column()
-        col.separator()
-        row = col.row()
-        row.prop(self, "flip_u", text='flip u sides', toggle=True)
-        row.prop(self, "flip_v", text='flip v sides', toggle=True)
+        col_left.label("display")
+        col_left.prop(self, "show_smooth", text="show smooth", toggle=True)
+        col_left.prop(self, "show_wire", text="show wire", toggle=True)
+
+        col_right = split.column()
+        col_right.label("flip directions")
+        col_right.prop(self, "flip_u", text='flip u sides', toggle=True)
+        col_right.prop(self, "flip_v", text='flip v sides', toggle=True)
         # k = row.operator("object.end_tube_operator", text="Finalize").fn = 'end_operator'
 
     def __init__(self):
