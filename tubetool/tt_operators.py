@@ -192,7 +192,6 @@ class AddSimpleTube(bpy.types.Operator):
         # ROW 1
         row = col.row()
         split = row.split(percentage=0.5)
-
         left = split.row()
         left.prop(self, "handle_ext_1", text="handle 1")
         right = split.row(align=True)
