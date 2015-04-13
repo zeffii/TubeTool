@@ -30,18 +30,33 @@ from bpy.props import (
 )
 
 
-class TubeEnderOps(bpy.types.Operator):
+class TubeCallbackOps(bpy.types.Operator):
 
-    bl_idname = "object.end_tube_operator"
-    bl_label = "End Tube Operator"
-    # bl_options = {'REGISTER', 'UNDO'}
+    bl_idname = "object.tube_callback"
+    bl_label = "Tube Callback (private)"
 
-    fn = bpy.props.StringProperty(default='')
+    current_name = StringProperty(default='')
+    fn = StringProperty(default='')
 
     def dispatch(self, context, type_op):
-        if type_op == 'end_operator':
-            print(dir(context))
-            print('ending operator')
+        wm = context.window_manager
+        operators = wm.operators
+
+        # only do this part if also current_name is passed in
+        if self.current_name:
+            
+            cls = None
+            for k in operators:
+                if k.bl_idname == 'MESH_OT_add_curvebased_tube':
+                    if k.generated_name == self.current_name:
+                        cls = k
+
+            if type_op == 'reset_radii':
+                if cls:
+                    print('attempt reset:', cls.generated_name)
+                    cls.main_scale = 1.0
+                    cls.point1_scale = 1.0
+                    cls.point2_scale = 1.0
 
     def execute(self, context):
         self.dispatch(context, self.fn)
@@ -184,7 +199,11 @@ class AddSimpleTube(bpy.types.Operator):
         col_right.label("flip directions")
         col_right.prop(self, "flip_u", text='flip u sides', toggle=True)
         col_right.prop(self, "flip_v", text='flip v sides', toggle=True)
-        # k = row.operator("object.end_tube_operator", text="Finalize").fn = 'end_operator'
+
+        row = layout.row()
+        k = row.operator("object.tube_callback", text="Reset radii")
+        k.fn = 'reset_radii'
+        k.current_name = self.generated_name
 
     def __init__(self):
         print("Start")
@@ -219,28 +238,16 @@ class AddSimpleTube(bpy.types.Operator):
         print("End")
 
     def execute(self, context):
+        print('just this..')
         update_simple_tube(self, context)
         return {'FINISHED'}
 
-    def modal(self, context, event):
-        if event.type == 'RET' and event.value == 'PRESS':
-            return {'FINISHED'}
-
-        return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-
-        self.execute(context)
-        context.window_manager.modal_handler_add(self)
-        print('invoked')
-        return {'RUNNING_MODAL'}
-
 
 def register():
-    bpy.utils.register_class(TubeEnderOps)
+    bpy.utils.register_class(TubeCallbackOps)
     bpy.utils.register_class(AddSimpleTube)
 
 
 def unregister():
     bpy.utils.unregister_class(AddSimpleTube)
-    bpy.utils.unregister_class(TubeEnderOps)
+    bpy.utils.unregister_class(TubeCallbackOps)
