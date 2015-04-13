@@ -50,13 +50,21 @@ class TubeCallbackOps(bpy.types.Operator):
                 if k.bl_idname == 'MESH_OT_add_curvebased_tube':
                     if k.generated_name == self.current_name:
                         cls = k
+            
+            if not cls:
+                ''' all callback functions require a valid class reference '''
+                return
 
             if type_op == 'reset_radii':
-                if cls:
-                    print('attempt reset:', cls.generated_name)
-                    cls.main_scale = 1.0
-                    cls.point1_scale = 1.0
-                    cls.point2_scale = 1.0
+                print('attempt reset:', cls.generated_name)
+                cls.main_scale = 1.0
+                cls.point1_scale = 1.0
+                cls.point2_scale = 1.0
+
+            else:
+                setattr(cls, type_op, 1.0)
+                cls.execute(context)
+
 
     def execute(self, context):
         self.dispatch(context, self.fn)
@@ -156,8 +164,8 @@ class AddSimpleTube(bpy.types.Operator):
         default=4, min=0, max=16)
     tube_resolution_u = IntProperty(min=0, default=12, max=30)
 
-    handle_ext_1 = FloatProperty(min=-4.0, default=2.0, max=4.0)
-    handle_ext_2 = FloatProperty(min=-4.0, default=2.0, max=4.0)
+    handle_ext_1 = FloatProperty(min=-8.0, default=2.0, max=8.0)
+    handle_ext_2 = FloatProperty(min=-8.0, default=2.0, max=8.0)
 
     show_smooth = BoolProperty(default=False)
     show_wire = BoolProperty(default=False)
@@ -172,6 +180,7 @@ class AddSimpleTube(bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
+        callback = "object.tube_callback"
         
         col = layout.column()
         col.prop(self, "subdiv", text="sub V")
@@ -180,12 +189,33 @@ class AddSimpleTube(bpy.types.Operator):
 
         col.separator()
 
+        # ROW 1
         row = col.row()
-        row.prop(self, "handle_ext_1", text="handle 1")
-        row.prop(self, "point1_scale", text="radius 1")
+        split = row.split(percentage=0.5)
+
+        left = split.row()
+        left.prop(self, "handle_ext_1", text="handle 1")
+        right = split.row(align=True)
+        right.prop(self, "point1_scale", text="radius 1")
+        a = right.operator(callback, text="", icon="LINK")
+        a.fn = 'point1_scale'
+        a.current_name = self.generated_name
+
+        # ROW 2
         row = col.row()
-        row.prop(self, "handle_ext_2", text="handle 2")
-        row.prop(self, "point2_scale", text="radius 2")
+        split = row.split()
+        left = split.row()
+        left.prop(self, "handle_ext_2", text="handle 2")
+        right = split.row(align=True)
+        right.prop(self, "point2_scale", text="radius 2")
+        a = right.operator(callback, text="", icon="LINK")
+        a.fn = 'point2_scale'
+        a.current_name = self.generated_name
+
+
+        # row = col.row()
+        # row.prop(self, "handle_ext_2", text="handle 2")
+        # row.prop(self, "point2_scale", text="radius 2")
 
         row = layout.row()
         split = row.split(percentage=0.5)
@@ -201,7 +231,7 @@ class AddSimpleTube(bpy.types.Operator):
         col_right.prop(self, "flip_v", text='flip v sides', toggle=True)
 
         row = layout.row()
-        k = row.operator("object.tube_callback", text="Reset radii")
+        k = row.operator(callback, text="Reset radii")
         k.fn = 'reset_radii'
         k.current_name = self.generated_name
 
