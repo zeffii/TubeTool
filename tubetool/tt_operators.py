@@ -64,8 +64,8 @@ class TubeCallbackOps(bpy.types.Operator):
 
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
-                # ideally, the value is derived from the the default of the 
-                # property of cls.type_op. but for now it is passed explicitely. 
+                # ideally, the value is derived from the default of the  property
+                # of cls.type_op. but for now it is passed explicitely. 
                 # Barf. Dryheave.
                 setattr(cls, type_op, self.default)  
                 cls.execute(context)
