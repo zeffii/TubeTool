@@ -37,6 +37,7 @@ class TubeCallbackOps(bpy.types.Operator):
 
     current_name = StringProperty(default='')
     fn = StringProperty(default='')
+    default = FloatProperty()
 
     def dispatch(self, context, type_op):
         wm = context.window_manager
@@ -62,7 +63,11 @@ class TubeCallbackOps(bpy.types.Operator):
                 cls.point2_scale = 1.0
 
             else:
-                setattr(cls, type_op, 1.0)
+                # would prefer to be implicit.. but self.default is OK for now.
+                # ideally, the value is derived from the the default of the 
+                # property of cls.type_op. but for now it is passed explicitely. 
+                # Barf. Dryheave.
+                setattr(cls, type_op, self.default)  
                 cls.execute(context)
 
 
@@ -189,32 +194,25 @@ class AddSimpleTube(bpy.types.Operator):
 
         col.separator()
 
+        def prop_n_reset(split, pname, pstr, default):
+            ''' I draw a slider and an operator to reset the slider '''
+            pid = split.row(align=True)
+            pid.prop(self, pname, text=pstr)
+            a = pid.operator(callback, text="", icon="LINK")
+            a.fn = pname
+            a.current_name = self.generated_name
+            a.default = default
+
         # ROW 1
-        row = col.row()
-        split = row.split(percentage=0.5)
-        left = split.row()
-        left.prop(self, "handle_ext_1", text="handle 1")
-        right = split.row(align=True)
-        right.prop(self, "point1_scale", text="radius 1")
-        a = right.operator(callback, text="", icon="LINK")
-        a.fn = 'point1_scale'
-        a.current_name = self.generated_name
+        row = col.row(); split = row.split(percentage=0.5)
+        prop_n_reset(split, "handle_ext_1", "handle 1", 2.0)  # left
+        prop_n_reset(split, "point1_scale", "radius_1", 1.0)  # right
 
         # ROW 2
-        row = col.row()
-        split = row.split()
-        left = split.row()
-        left.prop(self, "handle_ext_2", text="handle 2")
-        right = split.row(align=True)
-        right.prop(self, "point2_scale", text="radius 2")
-        a = right.operator(callback, text="", icon="LINK")
-        a.fn = 'point2_scale'
-        a.current_name = self.generated_name
+        row = col.row(); split = row.split()
+        prop_n_reset(split, "handle_ext_2", "handle 2", 2.0)  # left
+        prop_n_reset(split, "point2_scale", "radius_2", 1.0)  # right
 
-
-        # row = col.row()
-        # row.prop(self, "handle_ext_2", text="handle 2")
-        # row.prop(self, "point2_scale", text="radius 2")
 
         row = layout.row()
         split = row.split(percentage=0.5)
