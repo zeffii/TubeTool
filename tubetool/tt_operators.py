@@ -233,12 +233,11 @@ class AddSimpleTube(bpy.types.Operator):
         k.current_name = self.generated_name
 
     def __init__(self):
-        print("Start")
         '''
-            - create curve
-            - assign default values
-            - add to scene
-            - record given name
+        - create curve
+        - assign default values
+        - add to scene
+        - record given name
         '''
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
@@ -265,7 +264,6 @@ class AddSimpleTube(bpy.types.Operator):
         print("End")
 
     def execute(self, context):
-        print('just this..')
         update_simple_tube(self, context)
         return {'FINISHED'}
 
