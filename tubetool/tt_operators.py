@@ -34,7 +34,7 @@ class TubeCallbackOps(bpy.types.Operator):
 
     bl_idname = "object.tube_callback"
     bl_label = "Tube Callback (private)"
-    bl_options = {'‘INTERNAL’'}
+    bl_options = {"INTERNAL"}
 
     current_name = StringProperty(default='')
     fn = StringProperty(default='')
