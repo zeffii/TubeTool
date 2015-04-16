@@ -34,6 +34,7 @@ class TubeCallbackOps(bpy.types.Operator):
 
     bl_idname = "object.tube_callback"
     bl_label = "Tube Callback (private)"
+    bl_options = {'‘INTERNAL’'}
 
     current_name = StringProperty(default='')
     fn = StringProperty(default='')
@@ -45,13 +46,13 @@ class TubeCallbackOps(bpy.types.Operator):
 
         # only do this part if also current_name is passed in
         if self.current_name:
-            
+
             cls = None
             for k in operators:
                 if k.bl_idname == 'MESH_OT_add_curvebased_tube':
                     if k.generated_name == self.current_name:
                         cls = k
-            
+
             if not cls:
                 ''' all callback functions require a valid class reference '''
                 return
@@ -67,17 +68,15 @@ class TubeCallbackOps(bpy.types.Operator):
 
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
-                # ideally, the value is derived from the default of the  property
-                # of cls.type_op. but for now it is passed explicitely. 
+                # ideally, the value is derived from the prop default
+                # of cls.type_op. but for now it is passed explicitely.
                 # Barf. Dryheave.
-                setattr(cls, type_op, self.default)  
+                setattr(cls, type_op, self.default)
                 cls.execute(context)
-
 
     def execute(self, context):
         self.dispatch(context, self.fn)
         return {'FINISHED'}
-
 
 
 def median(face):
@@ -139,16 +138,16 @@ def update_simple_tube(oper, context):
         co = medians[0]
         point1.radius = 1 * oper.main_scale * oper.point1_scale
         point1.co = co
-        point1.handle_left = (co - (normals[0] * oper.handle_ext_1)) 
-        point1.handle_right = (co + (normals[0] * oper.handle_ext_1)) 
+        point1.handle_left = (co - (normals[0] * oper.handle_ext_1))
+        point1.handle_right = (co + (normals[0] * oper.handle_ext_1))
 
         # Point 1
         point2 = polyline.bezier_points[pointB]
         point2.radius = (1 * op2_scale) * oper.main_scale * oper.point2_scale
         co = medians[1]
         point2.co = co
-        point2.handle_right = (co - (normals[1] * oper.handle_ext_2)) 
-        point2.handle_left = (co + (normals[1] * oper.handle_ext_2)) 
+        point2.handle_right = (co - (normals[1] * oper.handle_ext_2))
+        point2.handle_left = (co + (normals[1] * oper.handle_ext_2))
 
         polyline.resolution_u = oper.tube_resolution_u
 
@@ -184,12 +183,12 @@ class AddSimpleTube(bpy.types.Operator):
     point2_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
 
     flip_v = BoolProperty()
-    flip_u = BoolProperty()    
+    flip_u = BoolProperty()
 
     def draw(self, context):
         layout = self.layout
         callback = "object.tube_callback"
-        
+
         col = layout.column()
         col.prop(self, "subdiv", text="sub V")
         col.prop(self, "tube_resolution_u", text="sub U")
@@ -216,7 +215,7 @@ class AddSimpleTube(bpy.types.Operator):
         prop_n_reset(split, "handle_ext_2", "handle 2", 2.0)  # left
         prop_n_reset(split, "point2_scale", "radius_2", 1.0)  # right
 
-
+        # next row
         row = layout.row()
         split = row.split(percentage=0.5)
         col_left = split.column()
@@ -239,7 +238,6 @@ class AddSimpleTube(bpy.types.Operator):
         k = col.operator(callback, text="To Mesh")
         k.fn = 'To Mesh'
         k.current_name = self.generated_name
-
 
     def __init__(self):
         '''
@@ -286,7 +284,7 @@ class AddSimpleTube(bpy.types.Operator):
         obj_n.matrix_world = obj.matrix_world.copy()
         bpy.context.scene.objects.link(obj_n)
         obj.hide_render = True
-        obj.hide = True        
+        obj.hide = True
 
     def execute(self, context):
         update_simple_tube(self, context)

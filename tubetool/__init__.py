@@ -43,11 +43,11 @@ if 'bpy' in globals():
 else:
     from tubetool import tt_operators
 
+
 import bpy
 
 
 def menu_func(self, context):
-    print('adding menu')
     self.layout.operator("mesh.add_curvebased_tube", text="Add Tubing")
     self.layout.separator()
 
@@ -55,6 +55,7 @@ def menu_func(self, context):
 def register():
     bpy.utils.register_module(__name__)
     bpy.types.VIEW3D_MT_edit_mesh_specials.prepend(menu_func)
+
 
 def unregister():
     bpy.types.VIEW3D_MT_edit_mesh_specials.remove(menu_func)
