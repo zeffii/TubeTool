@@ -56,11 +56,14 @@ class TubeCallbackOps(bpy.types.Operator):
                 ''' all callback functions require a valid class reference '''
                 return
 
-            if type_op == 'reset_radii':
+            if type_op == "Reset radii":
                 print('attempt reset:', cls.generated_name)
                 cls.main_scale = 1.0
                 cls.point1_scale = 1.0
                 cls.point2_scale = 1.0
+
+            elif type_op == "To Mesh":
+                cls.make_real()
 
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
@@ -174,7 +177,7 @@ class AddSimpleTube(bpy.types.Operator):
 
     show_smooth = BoolProperty(default=False)
     show_wire = BoolProperty(default=False)
-    end_operator = BoolProperty(default=False)  # unused .
+    keep_operator_alive = BoolProperty(default=True)
 
     main_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
     point1_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
@@ -227,10 +230,16 @@ class AddSimpleTube(bpy.types.Operator):
         col_right.prop(self, "flip_u", text='flip u sides', toggle=True)
         col_right.prop(self, "flip_v", text='flip v sides', toggle=True)
 
-        row = layout.row()
-        k = row.operator(callback, text="Reset radii")
-        k.fn = 'reset_radii'
+        col = layout.column()
+
+        k = col.operator(callback, text="Reset radii")
+        k.fn = "Reset radii"
         k.current_name = self.generated_name
+
+        k = col.operator(callback, text="To Mesh")
+        k.fn = 'To Mesh'
+        k.current_name = self.generated_name
+
 
     def __init__(self):
         '''
@@ -262,6 +271,22 @@ class AddSimpleTube(bpy.types.Operator):
 
     def __del__(self):
         print("End")
+
+    def make_real(self):
+        objects = bpy.data.objects
+        obj = objects[self.generated_name]  # this curve object
+
+        scene = bpy.context.scene
+        settings = 'PREVIEW'
+        modifiers = True
+        obj_data = obj.to_mesh(scene, modifiers, settings)
+
+        obj_n = objects.new('MESHED_' + obj.name, obj_data)
+        obj_n.location = (0, 0, 0)
+        obj_n.matrix_world = obj.matrix_world.copy()
+        bpy.context.scene.objects.link(obj_n)
+        obj.hide_render = True
+        obj.hide = True        
 
     def execute(self, context):
         update_simple_tube(self, context)
