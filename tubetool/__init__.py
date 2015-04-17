@@ -41,7 +41,7 @@ if 'bpy' in globals():
         imp.reload(tt_operators)
 
 else:
-    from tubetool import tt_operators
+    from . import tt_operators
 
 
 import bpy

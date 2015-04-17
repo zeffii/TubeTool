@@ -66,6 +66,9 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
+            elif type_op == 'force_redraw':
+                ...
+
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
                 # ideally, the value is derived from the prop default
@@ -132,18 +135,28 @@ def update_simple_tube(oper, context):
 
         pointA, pointB = [0, -1] if not oper.flip_v else [-1, 0]
 
+        ''' the radii stuff must be tidier before merge to master. '''
+
         # Point 0
         ''' default scale or radius point1 == 1 '''
         point1 = polyline.bezier_points[pointA]
         co = medians[0]
-        point1.radius = 1 * oper.main_scale * oper.point1_scale
+        if oper.equal_radii:
+            point1.radius = 1 * oper.main_scale
+        else:
+            point1.radius = 1 * oper.main_scale * oper.point1_scale
+
         point1.co = co
         point1.handle_left = (co - (normals[0] * oper.handle_ext_1))
         point1.handle_right = (co + (normals[0] * oper.handle_ext_1))
 
         # Point 1
         point2 = polyline.bezier_points[pointB]
-        point2.radius = (1 * op2_scale) * oper.main_scale * oper.point2_scale
+        if oper.equal_radii:
+            point2.radius = 1 * oper.main_scale
+        else:
+            point2.radius = 1 * op2_scale * oper.main_scale * oper.point2_scale
+
         co = medians[1]
         point2.co = co
         point2.handle_right = (co - (normals[1] * oper.handle_ext_2))
@@ -164,12 +177,14 @@ class AddSimpleTube(bpy.types.Operator):
     base_name = StringProperty(default='TT_tube')
     generated_name = StringProperty(default='')
 
-    # Dummy variables for the time being
     subdiv = IntProperty(
         name="Profile Subdivision",
         description="subdivision level for the profile (circumference)",
         default=4, min=0, max=16)
-    tube_resolution_u = IntProperty(min=0, default=12, max=30)
+
+    tube_resolution_u = IntProperty(
+        min=0, default=12, max=30,
+        description="subdivision level for the length of the initial curve")
 
     handle_ext_1 = FloatProperty(min=-8.0, default=2.0, max=8.0)
     handle_ext_2 = FloatProperty(min=-8.0, default=2.0, max=8.0)
@@ -185,35 +200,43 @@ class AddSimpleTube(bpy.types.Operator):
     flip_v = BoolProperty()
     flip_u = BoolProperty()
 
+    equal_radii = BoolProperty(default=0)
+
     def draw(self, context):
         layout = self.layout
         callback = "object.tube_callback"
 
         col = layout.column()
-        col.prop(self, "subdiv", text="sub V")
-        col.prop(self, "tube_resolution_u", text="sub U")
-        col.prop(self, "main_scale", text="overall scale")
+        col_row = col.row()
+        col_row.prop(self, "subdiv", text="V")
+        col_row.prop(self, "tube_resolution_u", text="U")
+
+        col_row = col.row()
+        col_row.prop(self, "equal_radii", text="equal radii")
+        col_row.prop(self, "main_scale", text="overall scale")
 
         col.separator()
 
-        def prop_n_reset(split, pname, pstr, default):
+        def prop_n_reset(split, pname, pstr, default, enabled=True):
             ''' I draw a slider and an operator to reset the slider '''
             pid = split.row(align=True)
+            pid.enabled = enabled
             pid.prop(self, pname, text=pstr)
             a = pid.operator(callback, text="", icon="LINK")
             a.fn = pname
             a.current_name = self.generated_name
             a.default = default
 
+        er = not self.equal_radii
         # ROW 1
         row = col.row(); split = row.split(percentage=0.5)
         prop_n_reset(split, "handle_ext_1", "handle 1", 2.0)  # left
-        prop_n_reset(split, "point1_scale", "radius_1", 1.0)  # right
+        prop_n_reset(split, "point1_scale", "radius_1", 1.0, er)  # right
 
         # ROW 2
         row = col.row(); split = row.split()
         prop_n_reset(split, "handle_ext_2", "handle 2", 2.0)  # left
-        prop_n_reset(split, "point2_scale", "radius_2", 1.0)  # right
+        prop_n_reset(split, "point2_scale", "radius_2", 1.0, er)  # right
 
         # next row
         row = layout.row()
@@ -221,13 +244,15 @@ class AddSimpleTube(bpy.types.Operator):
         col_left = split.column()
 
         col_left.label("display")
-        col_left.prop(self, "show_smooth", text="show smooth", toggle=True)
-        col_left.prop(self, "show_wire", text="show wire", toggle=True)
+        left_row = col_left.row()
+        left_row.prop(self, "show_smooth", text="smooth", toggle=True)
+        left_row.prop(self, "show_wire", text="wire", toggle=True)
 
         col_right = split.column()
-        col_right.label("flip directions")
-        col_right.prop(self, "flip_u", text='flip u sides', toggle=True)
-        col_right.prop(self, "flip_v", text='flip v sides', toggle=True)
+        col_right.label("flip over")
+        right_row = col_right.row()
+        right_row.prop(self, "flip_u", text='Direction', toggle=True)
+        right_row.prop(self, "flip_v", text='Normal', toggle=True)
 
         col = layout.column()
 
