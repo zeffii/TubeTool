@@ -66,7 +66,31 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            elif type_op == 'force_redraw':
+            elif type_op == 'Join':
+
+                # # gets current name, but could be stored earlier..
+                # base_obj = bpy.context.edit_object
+                # base_obj_name = base_obj.name
+
+                # new_obj = cls.make_real()
+                # print(' made', new_obj.name)
+
+                # # let's use ops to add verts+faces to base_obj
+                # bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+                # bpy.ops.object.select_all(action='DESELECT')
+
+                # new_obj.select = True
+                # print('base obj name', base_obj_name)
+                # base_obj = bpy.data.objects[base_obj_name]
+                # base_obj.select = True
+                # bpy.context.scene.objects.active = base_obj
+
+                # # join and return back to edit mode.
+                # # bpy.ops.object.join()
+                # # bpy.ops.object.mode_set(mode='EDIT')
+
+                # # don't overwrite with existing mesh.
+                # cls.joined = True
                 ...
 
             else:
@@ -95,6 +119,10 @@ def update_simple_tube(oper, context):
     generated_name = oper.generated_name
 
     obj_main = bpy.context.edit_object
+
+    if not obj_main:
+        return
+
     mw = obj_main.matrix_world
     me = obj_main.data
     bm = bmesh.from_edit_mesh(me)
@@ -201,6 +229,7 @@ class AddSimpleTube(bpy.types.Operator):
     flip_u = BoolProperty()
 
     equal_radii = BoolProperty(default=0)
+    # joined = BoolProperty(default=0)
 
     def draw(self, context):
         layout = self.layout
@@ -264,6 +293,10 @@ class AddSimpleTube(bpy.types.Operator):
         k.fn = 'To Mesh'
         k.current_name = self.generated_name
 
+        # k = col.operator(callback, text="Join")
+        # k.fn = 'Join'
+        # k.current_name = self.generated_name
+
     def __init__(self):
         '''
         - create curve
@@ -310,6 +343,7 @@ class AddSimpleTube(bpy.types.Operator):
         bpy.context.scene.objects.link(obj_n)
         obj.hide_render = True
         obj.hide = True
+        # return obj_n
 
     def execute(self, context):
         update_simple_tube(self, context)
