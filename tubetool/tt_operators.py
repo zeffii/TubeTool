@@ -136,6 +136,10 @@ def update_simple_tube(oper, context):
     else:
         faces = list(reversed([f for f in bm.faces if f.select]))
 
+    # accidental check.
+    if not (len(faces) == 3):
+        return
+
     for f in faces:
         if len(medians) > 2:
             # dont select more than 2 faces.
@@ -306,6 +310,9 @@ class AddSimpleTube(bpy.types.Operator):
         '''
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
+
+        # 
+
         mw = obj_main.matrix_world
 
         curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
