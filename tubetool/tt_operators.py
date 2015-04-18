@@ -136,10 +136,6 @@ def update_simple_tube(oper, context):
     else:
         faces = list(reversed([f for f in bm.faces if f.select]))
 
-    # accidental check.
-    if not (len(faces) == 3):
-        return
-
     for f in faces:
         if len(medians) > 2:
             # dont select more than 2 faces.
@@ -235,6 +231,8 @@ class AddSimpleTube(bpy.types.Operator):
     equal_radii = BoolProperty(default=0)
     # joined = BoolProperty(default=0)
 
+    do_not_process = BoolProperty(default=False)
+
     def draw(self, context):
         layout = self.layout
         callback = "object.tube_callback"
@@ -311,7 +309,10 @@ class AddSimpleTube(bpy.types.Operator):
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
 
-        # 
+        if not (obj_main.data.total_face_sel == 2):
+            self.do_not_process = True
+            self.report({'WARNING'}, 'select two faces only')
+            return
 
         mw = obj_main.matrix_world
 
@@ -335,6 +336,10 @@ class AddSimpleTube(bpy.types.Operator):
     def __del__(self):
         print("End")
 
+    @classmethod
+    def poll(self, context):
+        return self.do_not_process
+
     def make_real(self):
         objects = bpy.data.objects
         obj = objects[self.generated_name]  # this curve object
@@ -353,8 +358,11 @@ class AddSimpleTube(bpy.types.Operator):
         # return obj_n
 
     def execute(self, context):
-        update_simple_tube(self, context)
-        return {'FINISHED'}
+        if self.do_not_process:
+            return {'CANCELLED'}
+        else:
+            update_simple_tube(self, context)
+            return {'FINISHED'}
 
 
 def register():
