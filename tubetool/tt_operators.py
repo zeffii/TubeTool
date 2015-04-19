@@ -24,6 +24,7 @@
 import bpy
 import bmesh
 from mathutils import Vector
+from .tt_gp_functions import get_layer, generate_gp3d_handle_repr
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
@@ -233,6 +234,9 @@ class AddSimpleTube(bpy.types.Operator):
 
     do_not_process = BoolProperty(default=False)
 
+    # this is used only to store updated handle info for drawing gp.
+    internal_json = StringProperty()
+
     def draw(self, context):
         layout = self.layout
         callback = "object.tube_callback"
@@ -362,6 +366,12 @@ class AddSimpleTube(bpy.types.Operator):
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)
+            data_name = 'stack_data'
+            layer_name = "stack layer"
+            layer = get_layer(data_name, layer_name)
+            # generate_gp3d_stroke(layer)
+            generate_gp3d_handle_repr(self, context, layer)
+            context.scene.grease_pencil = bpy.data.grease_pencil[data_name]
             return {'FINISHED'}
 
 
