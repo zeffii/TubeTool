@@ -24,7 +24,7 @@
 import bpy
 import bmesh
 from mathutils import Vector
-from .tt_gp_functions import get_layer, generate_gp3d_handle_repr
+from .tt_GL_functions import tag_redraw_all_view3d, draw_callback_px
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
@@ -234,9 +234,6 @@ class AddSimpleTube(bpy.types.Operator):
 
     do_not_process = BoolProperty(default=False)
 
-    # this is used only to store updated handle info for drawing gp.
-    internal_json = StringProperty()
-
     def draw(self, context):
         layout = self.layout
         callback = "object.tube_callback"
@@ -335,7 +332,7 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        update_simple_tube(self, bpy.context)
+        # update_simple_tube(self, bpy.context)  $ can be nixed
 
     def __del__(self):
         print("End")
@@ -363,16 +360,47 @@ class AddSimpleTube(bpy.types.Operator):
 
     def execute(self, context):
         if self.do_not_process:
+            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)
-            data_name = 'stack_data'
-            layer_name = "stack layer"
-            layer = get_layer(data_name, layer_name)
-            # generate_gp3d_stroke(layer)
-            generate_gp3d_handle_repr(self, context, layer)
-            context.scene.grease_pencil = bpy.data.grease_pencil[data_name]
+            context.area.tag_redraw()
             return {'FINISHED'}
+
+
+'''
+    def modal(self, context, event):
+        context.area.tag_redraw()
+
+        if event.type == 'MOUSEMOVE':
+            self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
+
+        elif event.type == 'LEFTMOUSE':
+            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            return {'FINISHED'}
+
+        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            return {'CANCELLED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        if context.area.type == 'VIEW_3D':
+            # the arguments we pass the the callback
+            args = (self, context)
+            # Add the region OpenGL drawing callback
+            # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
+            self._handle = bpy.types.SpaceView3D.draw_handler_add(draw_callback_px, args, 'WINDOW', 'POST_PIXEL')
+
+            self.mouse_path = []
+
+            context.window_manager.modal_handler_add(self)
+            return {'RUNNING_MODAL'}
+        else:
+            self.report({'WARNING'}, "View3D not found, cannot run operator")
+            return {'CANCELLED'}
+'''
 
 
 def register():

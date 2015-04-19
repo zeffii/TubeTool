@@ -39,11 +39,11 @@ if 'bpy' in globals():
         print('doing reloads')
         import imp
         imp.reload(tt_operators)
-        imp.reload(tt_gp_functions)
+        imp.reload(tt_GL_functions)
 
 else:
     from . import tt_operators
-    from . import tt_gp_functions
+    from . import tt_GL_functions
 
 
 import bpy
