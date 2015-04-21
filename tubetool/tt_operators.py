@@ -148,9 +148,9 @@ def update_simple_tube(oper, context):
         point1 = polyline.bezier_points[pointA]
         co = medians[0]
         if oper.equal_radii:
-            point1.radius = 1 * oper.main_scale
+            point1.radius = oper.main_scale
         else:
-            point1.radius = 1 * oper.main_scale * oper.point1_scale
+            point1.radius = oper.main_scale * oper.point1_scale
 
         point1.co = co
         point1.handle_left = (co - (normals[0] * oper.handle_ext_1))
@@ -159,9 +159,9 @@ def update_simple_tube(oper, context):
         # Point 1
         point2 = polyline.bezier_points[pointB]
         if oper.equal_radii:
-            point2.radius = 1 * oper.main_scale
+            point2.radius = oper.main_scale
         else:
-            point2.radius = 1 * op2_scale * oper.main_scale * oper.point2_scale
+            point2.radius = op2_scale * oper.main_scale * oper.point2_scale
 
         co = medians[1]
         point2.co = co
