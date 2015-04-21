@@ -332,6 +332,7 @@ class AddSimpleTube(bpy.types.Operator):
         obj.hide = True
 
     def execute(self, context):
+        # use self.generated name instead! sucka1
         if self.do_not_process:
             callback_disable(self.n_id)
             return {'CANCELLED'}
@@ -341,33 +342,6 @@ class AddSimpleTube(bpy.types.Operator):
             self.n_id = node_id(self)
             callback_enable(self)
             return {'FINISHED'}
-
-
-'''
-    def modal(self, context, event):
-
-        elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
-            return {'CANCELLED'}
-
-        return {'RUNNING_MODAL'}
-
-    def invoke(self, context, event):
-        if context.area.type == 'VIEW_3D':
-            # the arguments we pass the the callback
-            args = (self, context)
-            # Add the region OpenGL drawing callback
-            # draw in view space with 'POST_VIEW' and 'PRE_VIEW'
-            self._handle = bpy.types.SpaceView3D.draw_handler_add(draw_callback_px, args, 'WINDOW', 'POST_PIXEL')
-
-            self.mouse_path = []
-
-            context.window_manager.modal_handler_add(self)
-            return {'RUNNING_MODAL'}
-        else:
-            self.report({'WARNING'}, "View3D not found, cannot run operator")
-            return {'CANCELLED'}
-'''
 
 
 def register():

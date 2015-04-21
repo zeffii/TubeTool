@@ -86,28 +86,26 @@ def draw_callback_px(caller, context):
     obj_curve = bpy.data.objects[caller.generated_name]
     handles = get_curve_handles(caller)
 
-    # 50% alpha, 2 pixel width line
     glEnable(GL_BLEND)
     glEnable(GL_POINT_SIZE)
-    glColor4f(0.9, 0.7, 0.9, 0.9)
-    # glLineWidth(2)
 
-    print(handles)
+    glLineWidth(2)
+    glPointSize(3)
 
-    # for handle in handles:
-    if True:
-        # glBegin(GL_LINE_STRIP)
-        glPointSize(3)
+    for handle in handles:
+
+        glColor4f(0.9, 0.7, 0.9, 0.9)
+        glBegin(GL_LINE_STRIP)
+        for vtx in handle:
+            world_point = obj_curve.matrix_world * vtx
+            glVertex3f(*world_point)
+        glEnd()
+
+        glColor4f(0.3, 0.3, 0.9, 0.9)
         glBegin(GL_POINTS)
-
-        # chain = []
-        # for vtx in handle:
-        #     world_point = obj_curve.matrix_world * vtx
-        #     glVertex3f(*world_point)
-        glVertex3f(1.0, 2.0, 1.3)
-        glVertex3f(1.0, -2.0, 1.3)
-        glVertex3f(2.0, 1.0, 1.3)
-        glVertex3f(2.0, 3.0, 3.3)
+        for vtx in handle:
+            world_point = obj_curve.matrix_world * vtx
+            glVertex3f(*world_point)
         glEnd()
 
     print('should have drawn')
