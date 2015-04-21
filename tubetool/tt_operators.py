@@ -26,7 +26,9 @@ import bmesh
 import time
 
 from mathutils import Vector
-from .tt_GL_functions import callback_disable, callback_enable
+from .tt_GL_functions import (
+    callback_disable, callback_enable, callback_disable_all
+)
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
@@ -61,7 +63,7 @@ class TubeCallbackOps(bpy.types.Operator):
                         cls = k
 
             if not cls:
-                ''' all callback functions require a valid class reference '''
+                ''' callbacks require valid class reference '''
                 return
 
             if type_op == "Reset radii":
@@ -332,10 +334,9 @@ class AddSimpleTube(bpy.types.Operator):
         obj.hide = True
 
     def execute(self, context):
-        # use self.generated name instead! sucka1
+        callback_disable_all()
+
         if self.do_not_process:
-            # callback_disable(self.n_id)
-            callback_disable_all()
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)
@@ -353,3 +354,4 @@ def register():
 def unregister():
     bpy.utils.unregister_class(AddSimpleTube)
     bpy.utils.unregister_class(TubeCallbackOps)
+    callback_disable_all()

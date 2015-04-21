@@ -46,9 +46,11 @@ from bgl import (
 
 '''
 
-Good luck figuring out how this works. If you are coming from a point of
-complete bright eye - never seen bgl or openGL before - the boilerplate
-for this beast is everything except:
+Good luck figuring out how this works.
+
+If you are coming from a point of complete bright eye - never seen
+bgl or openGL before - the boilerplate for this beast is everything
+except:
 
 - get_curve_handles
 - draw_callback_px
@@ -112,9 +114,6 @@ def draw_callback_px(caller, context):
             glVertex3f(*world_point)
         glEnd()
 
-    print('should have drawn')
-    print(list(callback_dict.keys()))
-
     # restore opengl defaults
     glLineWidth(1)
     glDisable(GL_BLEND)
@@ -132,30 +131,28 @@ def tag_redraw_all_view3d():
                         region.tag_redraw()
 
 
-def callback_enable(self):
-    global callback_dict
-    
-    if self.n_id in callback_dict:
+def callback_enable(caller):
+    n_id = caller.n_id
+    if n_id in callback_dict:
         return
-    args = (self, bpy.context)
-    handle_pixel = SpaceView3D.draw_handler_add(
-        draw_callback_px, args, 'WINDOW', 'POST_VIEW')
-    callback_dict[self.n_id] = handle_pixel
+
+    args = (caller, bpy.context)
+    _config = draw_callback_px, args, 'WINDOW', 'POST_VIEW'
+    _handle = SpaceView3D.draw_handler_add(*_config)
+
+    callback_dict[n_id] = _handle
     tag_redraw_all_view3d()
 
 
 def callback_disable(n_id):
-    global callback_dict
-    handle_pixel = callback_dict.get(n_id, None)
-    if not handle_pixel:
-        return
-    SpaceView3D.draw_handler_remove(handle_pixel, 'WINDOW')
-    del callback_dict[n_id]
-    tag_redraw_all_view3d()
+    _handle = callback_dict.get(n_id, None)
+    if _handle:
+        SpaceView3D.draw_handler_remove(_handle, 'WINDOW')
+        del callback_dict[n_id]
+        tag_redraw_all_view3d()
 
 
 def callback_disable_all():
-    global callback_dict
     temp_list = list(callback_dict.keys())
     for n_id in temp_list:
         if n_id:
