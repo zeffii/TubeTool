@@ -334,7 +334,8 @@ class AddSimpleTube(bpy.types.Operator):
     def execute(self, context):
         # use self.generated name instead! sucka1
         if self.do_not_process:
-            callback_disable(self.n_id)
+            # callback_disable(self.n_id)
+            callback_disable_all()
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)

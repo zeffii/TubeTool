@@ -90,18 +90,22 @@ def draw_callback_px(caller, context):
     glEnable(GL_POINT_SIZE)
 
     glLineWidth(2)
-    glPointSize(3)
+    glPointSize(4)
 
-    for handle in handles:
+    col1 = (0.9, 0.3, 0.9, 0.9)
+    col2 = (0.9, 0.9, 0.3, 0.9)
+    temp_colors = [col1, col2]
 
-        glColor4f(0.9, 0.7, 0.9, 0.9)
+    for idx, handle in enumerate(handles):
+
+        glColor4f(*temp_colors[idx])
         glBegin(GL_LINE_STRIP)
         for vtx in handle:
             world_point = obj_curve.matrix_world * vtx
             glVertex3f(*world_point)
         glEnd()
 
-        glColor4f(0.3, 0.3, 0.9, 0.9)
+        glColor4f(0.6, 0.6, 0.9, 0.9)
         glBegin(GL_POINTS)
         for vtx in handle:
             world_point = obj_curve.matrix_world * vtx
@@ -130,6 +134,7 @@ def tag_redraw_all_view3d():
 
 def callback_enable(self):
     global callback_dict
+    
     if self.n_id in callback_dict:
         return
     args = (self, bpy.context)
@@ -150,7 +155,7 @@ def callback_disable(n_id):
 
 
 def callback_disable_all():
-    global callback_dict  # needed?
+    global callback_dict
     temp_list = list(callback_dict.keys())
     for n_id in temp_list:
         if n_id:
