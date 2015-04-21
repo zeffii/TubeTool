@@ -26,10 +26,37 @@ import blf
 import math
 import bpy
 import bmesh
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
-#  reusing
-# https://github.com/nortikin/sverchok/blob/master/ui/index_viewer_draw.py
+from bgl import (
+    glEnable, glDisable, glBegin, glEnd,
+    Buffer, GL_FLOAT, GL_BYTE, GL_INT,
+    glGetIntegerv, glGetFloatv,
+    glColor3f, glVertex3f, glColor4f, glPointSize, glLineWidth,
+    glLineStipple, glPolygonStipple, glHint, glShadeModel,
+    #
+    GL_MATRIX_MODE, GL_MODELVIEW_MATRIX, GL_MODELVIEW, GL_PROJECTION,
+    glMatrixMode, glLoadMatrixf, glPushMatrix, glPopMatrix, glLoadIdentity,
+    glGenLists, glNewList, glEndList, glCallList, glFlush, GL_COMPILE,
+    #
+    GL_POINTS, GL_POINT_SIZE, GL_POINT_SMOOTH, GL_POINT_SMOOTH_HINT,
+    GL_LINE, GL_LINES, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINE_STIPPLE,
+    GL_POLYGON, GL_POLYGON_STIPPLE, GL_TRIANGLES, GL_QUADS, GL_BLEND,
+    GL_NICEST, GL_FASTEST, GL_FLAT, GL_SMOOTH, GL_LINE_SMOOTH_HINT)
+
+'''
+
+Good luck figuring out how this works. If you are coming from a point of
+complete bright eye - never seen bgl or openGL before - the boilerplate
+for this beast is everything except:
+
+- get_curve_handles
+- draw_callback_px
+
+The rest is for dealing with adding the GL drawing mechanism to the
+correct location (SpaceView3D) and removing it when done.
+
+'''
 
 
 SpaceView3D = bpy.types.SpaceView3D
@@ -37,28 +64,64 @@ SpaceView3D = bpy.types.SpaceView3D
 callback_dict = {}
 
 
-def get_handles(oper):
-    obj = bpy.data.objects[oper.generated_name]
+def get_curve_handles(caller):
+    obj = bpy.data.objects[caller.generated_name]
     curvedata = obj.data
     polyline = curvedata.splines[0]
 
     handles = []
-    points = [0, -1] if not oper.flip_v else [-1, 0]
+    points = [0, -1] if not caller.flip_v else [-1, 0]
 
     for p in points:
         point = polyline.bezier_points[p]
-        a = point.handle_left
-        b = point.co
-        c = point.handle_right
+        a = point.handle_left.xyz
+        b = point.co.xyz
+        c = point.handle_right.xyz
         handles.append([a, b, c])
 
     return handles
 
 
+def draw_callback_px(caller, context):
+    obj_curve = bpy.data.objects[caller.generated_name]
+    handles = get_curve_handles(caller)
+
+    # 50% alpha, 2 pixel width line
+    glEnable(GL_BLEND)
+    glEnable(GL_POINT_SIZE)
+    glColor4f(0.9, 0.7, 0.9, 0.9)
+    # glLineWidth(2)
+
+    print(handles)
+
+    # for handle in handles:
+    if True:
+        # glBegin(GL_LINE_STRIP)
+        glPointSize(3)
+        glBegin(GL_POINTS)
+
+        # chain = []
+        # for vtx in handle:
+        #     world_point = obj_curve.matrix_world * vtx
+        #     glVertex3f(*world_point)
+        glVertex3f(1.0, 2.0, 1.3)
+        glVertex3f(1.0, -2.0, 1.3)
+        glVertex3f(2.0, 1.0, 1.3)
+        glVertex3f(2.0, 3.0, 3.3)
+        glEnd()
+
+    print('should have drawn')
+    print(list(callback_dict.keys()))
+
+    # restore opengl defaults
+    glLineWidth(1)
+    glDisable(GL_BLEND)
+    glDisable(GL_POINT_SIZE)
+    glColor4f(0.0, 0.0, 0.0, 1.0)
+
+
 def tag_redraw_all_view3d():
     context = bpy.context
-
-    # Py cant access notifers
     for window in context.window_manager.windows:
         for area in window.screen.areas:
             if area.type == 'VIEW_3D':
@@ -67,42 +130,34 @@ def tag_redraw_all_view3d():
                         region.tag_redraw()
 
 
-def callback_disable_all():
+def callback_enable(self):
     global callback_dict
+    if self.n_id in callback_dict:
+        return
+    args = (self, bpy.context)
+    handle_pixel = SpaceView3D.draw_handler_add(
+        draw_callback_px, args, 'WINDOW', 'POST_VIEW')
+    callback_dict[self.n_id] = handle_pixel
+    tag_redraw_all_view3d()
+
+
+def callback_disable(n_id):
+    global callback_dict
+    handle_pixel = callback_dict.get(n_id, None)
+    if not handle_pixel:
+        return
+    SpaceView3D.draw_handler_remove(handle_pixel, 'WINDOW')
+    del callback_dict[n_id]
+    tag_redraw_all_view3d()
+
+
+def callback_disable_all():
+    global callback_dict  # needed?
     temp_list = list(callback_dict.keys())
     for n_id in temp_list:
         if n_id:
             callback_disable(n_id)
 
 
-def draw_callback_px(self, context):
-
-    obj_curve = bpy.data.objects[self.generated_name]
-    handles = get_handles(self)
-
-    font_id = 0  # XXX, need to find out how best to get this.
-
-    # draw some text
-    blf.position(font_id, 15, 30, 0)
-    blf.size(font_id, 20, 72)
-    blf.draw(font_id, "Hello Word ")
-
-    # 50% alpha, 2 pixel width line
-    bgl.glEnable(bgl.GL_BLEND)
-    bgl.glColor4f(0.7, 0.7, 0.5, 0.5)
-    bgl.glLineWidth(2)
-
-    for handle in handles:
-        bgl.glBegin(bgl.GL_LINE_STRIP)
-
-        chain = []
-        for vtx in handle:
-            world_point = obj_curve.matrix_world * vtx
-            bgl.glVertex3f(*world_point[:])
-
-        bgl.glEnd()
-
-    # restore opengl defaults
-    bgl.glLineWidth(1)
-    bgl.glDisable(bgl.GL_BLEND)
-    bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
+def unregister():
+    callback_disable_all()

@@ -23,12 +23,18 @@
 
 import bpy
 import bmesh
+import time
+
 from mathutils import Vector
-from .tt_GL_functions import tag_redraw_all_view3d, draw_callback_px
+from .tt_GL_functions import callback_disable, callback_enable
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
+
+
+def node_id(oper):
+    return str(hash(oper) ^ hash(time.monotonic()))
 
 
 class TubeCallbackOps(bpy.types.Operator):
@@ -67,38 +73,7 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            elif type_op == 'Join':
-
-                # # gets current name, but could be stored earlier..
-                # base_obj = bpy.context.edit_object
-                # base_obj_name = base_obj.name
-
-                # new_obj = cls.make_real()
-                # print(' made', new_obj.name)
-
-                # # let's use ops to add verts+faces to base_obj
-                # bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-                # bpy.ops.object.select_all(action='DESELECT')
-
-                # new_obj.select = True
-                # print('base obj name', base_obj_name)
-                # base_obj = bpy.data.objects[base_obj_name]
-                # base_obj.select = True
-                # bpy.context.scene.objects.active = base_obj
-
-                # # join and return back to edit mode.
-                # # bpy.ops.object.join()
-                # # bpy.ops.object.mode_set(mode='EDIT')
-
-                # # don't overwrite with existing mesh.
-                # cls.joined = True
-                ...
-
             else:
-                # would prefer to be implicit.. but self.default is OK for now.
-                # ideally, the value is derived from the prop default
-                # of cls.type_op. but for now it is passed explicitely.
-                # Barf. Dryheave.
                 setattr(cls, type_op, self.default)
                 cls.execute(context)
 
@@ -233,6 +208,7 @@ class AddSimpleTube(bpy.types.Operator):
     # joined = BoolProperty(default=0)
 
     do_not_process = BoolProperty(default=False)
+    n_id = StringProperty()
 
     def draw(self, context):
         layout = self.layout
@@ -296,10 +272,6 @@ class AddSimpleTube(bpy.types.Operator):
         k.fn = 'To Mesh'
         k.current_name = self.generated_name
 
-        # k = col.operator(callback, text="Join")
-        # k.fn = 'Join'
-        # k.current_name = self.generated_name
-
     def __init__(self):
         '''
         - create curve
@@ -332,13 +304,15 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        # update_simple_tube(self, bpy.context)  $ can be nixed
+        # add self to all windows
+        self.n_id = node_id(self)
 
     def __del__(self):
         print("End")
 
     @classmethod
     def poll(self, context):
+        print('polling!')
         return self.do_not_process
 
     def make_real(self):
@@ -356,28 +330,21 @@ class AddSimpleTube(bpy.types.Operator):
         bpy.context.scene.objects.link(obj_n)
         obj.hide_render = True
         obj.hide = True
-        # return obj_n
 
     def execute(self, context):
         if self.do_not_process:
-            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
+            callback_disable(self.n_id)
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)
-            context.area.tag_redraw()
+            callback_disable(self.n_id)
+            self.n_id = node_id(self)
+            callback_enable(self)
             return {'FINISHED'}
 
 
 '''
     def modal(self, context, event):
-        context.area.tag_redraw()
-
-        if event.type == 'MOUSEMOVE':
-            self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
-
-        elif event.type == 'LEFTMOUSE':
-            bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
-            return {'FINISHED'}
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
