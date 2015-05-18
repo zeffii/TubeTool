@@ -107,12 +107,7 @@ class TubeCallbackOps(bpy.types.Operator):
 
 
 def median(face):
-    med = Vector()
-    for vert in face.verts:
-        vec = vert.co
-        med = med + vec
-    return med / len(face.verts)
-
+    return face.calc_center_median()
 
 def update_simple_tube(oper, context):
 
