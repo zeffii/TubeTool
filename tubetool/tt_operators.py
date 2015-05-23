@@ -109,6 +109,7 @@ class TubeCallbackOps(bpy.types.Operator):
 def median(face):
     return face.calc_center_median()
 
+
 def update_simple_tube(oper, context):
 
     generated_name = oper.generated_name
@@ -306,7 +307,7 @@ class AddSimpleTube(bpy.types.Operator):
 
         if not (obj_main.data.total_face_sel == 2):
             self.do_not_process = True
-            self.report({'WARNING'}, 'select two faces only')
+            self.report({'WARNING'}, 'select two faces only, and they must be on the same object')
             return
 
         mw = obj_main.matrix_world
