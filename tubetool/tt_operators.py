@@ -23,7 +23,7 @@
 
 import bpy
 import bmesh
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
@@ -31,6 +31,43 @@ from bpy.props import (
 
 # local variable to file:
 sliced_tube = {}
+
+
+def make_matrix(v1, v2, v3):
+    # from mutant bob
+    # http://blender.stackexchange.com/questions/30808
+    a = v2 - v1
+    b = v3 - v1
+
+    c = a.cross(b)
+    if c.magnitude > 0:
+        c = c.normalized()
+    else:
+        raise BaseException("A B C are colinear")
+
+    b2 = c.cross(a).normalized()
+    a2 = a.normalized()
+    m = Matrix([a2, b2, c]).transposed()
+    s = a.magnitude
+    m = Matrix.Translation(v1) * Matrix.Scale(s, 4) * m.to_4x4()
+    return m
+
+
+def avg(vectors):
+    n = Vector()
+    for v in vectors:
+        n += v
+    return n / max(len(vectors), 1)
+
+
+def matrix_from_verts(verts):
+    mean = avg([v.co for v in verts])
+    v1 = verts[0].co
+    v2 = verts[1].co
+    v3 = verts[2].co
+    v12 = (v1 + v2) / 2
+    v23 = (v2 + v3) / 2
+    return make_matrix(mean, v12, v23)
 
 
 class TubeCallbackOps(bpy.types.Operator):
@@ -122,11 +159,16 @@ def write_mesh_to_storage(obj):
     obj_data = obj.to_mesh(scene, False, 'RENDER')
     slices = (u_res + 1)
     num_verts = len(obj_data.vertices)
-    vcirc = num_verts / slices
+    vcirc = int(num_verts / slices)
     msg = 'num_verts {0}, slices {1}, verts_on_circum {2}'
 
     # bevel_resolution (v) => (((v+1)*2) + 2) => vcirc
-    ()
+    for idx, slice in enumerate(range(0, num_verts, vcirc)):
+        verts_on_slice = obj_data.vertices[slice:slice + vcirc]
+        sliced_tube[idx] = verts_on_slice
+
+    print(sliced_tube)
+    # m = matrix_from_verts
 
     print(msg.format(num_verts, slices, vcirc))
     bpy.data.meshes.remove(obj_data)
