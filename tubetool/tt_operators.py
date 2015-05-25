@@ -29,6 +29,9 @@ from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
 
+# local variable to file:
+sliced_tube = {}
+
 
 class TubeCallbackOps(bpy.types.Operator):
 
@@ -110,6 +113,25 @@ def median(face):
     return face.calc_center_median()
 
 
+def write_mesh_to_storage(obj):
+    scene = bpy.context.scene
+    curvedata = obj.data
+    polyline = curvedata.splines[0]
+    u_res = polyline.resolution_u
+
+    obj_data = obj.to_mesh(scene, False, 'RENDER')
+    slices = (u_res + 1)
+    num_verts = len(obj_data.vertices)
+    vcirc = num_verts / slices
+    msg = 'num_verts {0}, slices {1}, verts_on_circum {2}'
+
+    # bevel_resolution (v) => (((v+1)*2) + 2) => vcirc
+    ()
+
+    print(msg.format(num_verts, slices, vcirc))
+    bpy.data.meshes.remove(obj_data)
+
+
 def update_simple_tube(oper, context):
 
     generated_name = oper.generated_name
@@ -187,6 +209,8 @@ def update_simple_tube(oper, context):
         point2.handle_left = (co + (normals[1] * oper.handle_ext_2))
 
         polyline.resolution_u = oper.tube_resolution_u
+
+        write_mesh_to_storage(obj)
 
     print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
