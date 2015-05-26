@@ -29,8 +29,12 @@ from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
 
+from .tt_bmesh_util import bmesh_from_pydata
+
 # local variable to file:
 sliced_tube = {}
+geometry = {}
+medians = {}
 
 
 def make_matrix(v1, v2, v3):
@@ -106,33 +110,6 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            elif type_op == 'Join':
-
-                # # gets current name, but could be stored earlier..
-                # base_obj = bpy.context.edit_object
-                # base_obj_name = base_obj.name
-
-                # new_obj = cls.make_real()
-                # print(' made', new_obj.name)
-
-                # # let's use ops to add verts+faces to base_obj
-                # bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-                # bpy.ops.object.select_all(action='DESELECT')
-
-                # new_obj.select = True
-                # print('base obj name', base_obj_name)
-                # base_obj = bpy.data.objects[base_obj_name]
-                # base_obj.select = True
-                # bpy.context.scene.objects.active = base_obj
-
-                # # join and return back to edit mode.
-                # # bpy.ops.object.join()
-                # # bpy.ops.object.mode_set(mode='EDIT')
-
-                # # don't overwrite with existing mesh.
-                # cls.joined = True
-                ...
-
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
                 # ideally, the value is derived from the prop default
@@ -167,11 +144,51 @@ def write_mesh_to_storage(obj):
         verts_on_slice = obj_data.vertices[slice:slice + vcirc]
         sliced_tube[idx] = verts_on_slice
 
-    print(sliced_tube)
-    # m = matrix_from_verts
+    for i in range(slices):
+        tverts = sliced_tube[i]
+        mid = [v.co for v in tverts]
+        medians[i] = mid
 
     print(msg.format(num_verts, slices, vcirc))
     bpy.data.meshes.remove(obj_data)
+
+
+def get_references():
+    fake_obj = 'fake_obj'
+    fake_mesh = 'fake_mesh'
+    objects = bpy.data.objects
+    meshes = bpy.data.meshes
+
+    obj_ref = objects.get(fake_obj)
+    mesh_ref = meshes.get(fake_mesh)
+
+    if not mesh_ref:
+        mesh_ref = meshes.new(fake_mesh)
+
+    if not obj_ref:
+        obj_ref = objects.new(fake_obj, mesh_ref)
+        bpy.context.scene.objects.link(obj_ref)
+
+    return obj_ref
+
+
+def morph_geometry(obj, slices):
+    '''
+    [ ] using m = matrix_from_verts
+     -  take face one and two and reverse matrix transforms to flatten it on z
+     -  transform with matrix inverts of m
+    [ ] store rectified face_one, face_two - locally to this function
+    [ ] have internal function to turn slice index into morphed face
+    [ ] for i in slices: generate morph, apply natrux for idx
+    [ ] implement twist each morph above index 0 can be twisted on their normal axis
+        by given quanity,
+    [ ] auto-twist attempts to match up .
+    '''
+    obj_ref = get_references()
+
+    bm = bmesh_from_pydata(verts, edges)
+    bm.to_mesh(obj_ref.data)
+    bm.free()
 
 
 def update_simple_tube(oper, context):
@@ -202,6 +219,9 @@ def update_simple_tube(oper, context):
             break
         normals.append(f.normal)
         medians.append(median(f))
+
+    geometry['face_one'] = [v.co for v in faces[0]]
+    geometry['face_two'] = [v.co for v in faces[1]]
 
     # This will automatically scale the bezierpoint radii as a
     # function of the size of the polygons
@@ -253,6 +273,7 @@ def update_simple_tube(oper, context):
         polyline.resolution_u = oper.tube_resolution_u
 
         write_mesh_to_storage(obj)
+        morph_geometry(obj, slices=polyline.resolution_u + 1)
 
     print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
