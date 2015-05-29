@@ -186,6 +186,26 @@ def morph_geometry(obj, slices):
     '''
     obj_ref = get_references()
 
+    def get_matrix(i):
+        gverts = medians[i], sliced_tube[i][0].co, sliced_tube[i][1].co
+        m = matrix_from_verts(gverts)
+        return m
+
+
+    mat_one = get_matrix(0)
+    flat_face_one = [mat_one * v for v in geometry['face_one']]
+
+    last_idx = slices - 1
+    mat_two = get_matrix(last_idx)
+    flat_face_two = [mat_two * v for v in geometry['face_two']]
+
+    def get_morph_state(rate):
+        ...
+
+
+    for i in range(slices):
+        m = get_matrix(i)
+
     bm = bmesh_from_pydata(verts, edges)
     bm.to_mesh(obj_ref.data)
     bm.free()
@@ -273,7 +293,7 @@ def update_simple_tube(oper, context):
         polyline.resolution_u = oper.tube_resolution_u
 
         write_mesh_to_storage(obj)
-        morph_geometry(obj, slices=polyline.resolution_u + 1)
+        morph_geometry(obj, polyline.resolution_u + 1)
 
     print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
