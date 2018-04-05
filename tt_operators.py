@@ -295,7 +295,7 @@ class AddSimpleTube(bpy.types.Operator):
         # k.fn = 'Join'
         # k.current_name = self.generated_name
 
-    def __init__(self):
+    def initialize_new_tube(self, context):
         '''
         - create curve
         - assign default values
@@ -329,6 +329,8 @@ class AddSimpleTube(bpy.types.Operator):
 
         update_simple_tube(self, bpy.context)
 
+    # def __init__(self):
+
     def __del__(self):
         print("End")
 
@@ -359,6 +361,11 @@ class AddSimpleTube(bpy.types.Operator):
         else:
             update_simple_tube(self, context)
             return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.initialize_new_tube(context)
+        return self.execute(context)
+
 
 
 def register():
