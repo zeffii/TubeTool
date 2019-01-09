@@ -36,9 +36,9 @@ class TubeCallbackOps(bpy.types.Operator):
     bl_label = "Tube Callback (private)"
     bl_options = {"INTERNAL"}
 
-    current_name = StringProperty(default='')
-    fn = StringProperty(default='')
-    default = FloatProperty()
+    current_name: StringProperty(default='')
+    fn: StringProperty(default='')
+    default: FloatProperty()
 
     def dispatch(self, context, type_op):
         wm = context.window_manager
@@ -113,6 +113,9 @@ def median(face):
 def update_simple_tube(oper, context):
 
     generated_name = oper.generated_name
+    if not generated_name:
+        print('being called without any geometry')
+        return
 
     obj_main = bpy.context.edit_object
 
@@ -146,7 +149,7 @@ def update_simple_tube(oper, context):
     op2_scale = scale2 / bevel_depth
 
     def modify_curve(medians, normals, curvename):
-        print('this happens')
+        # print('this happens')
         obj = bpy.data.objects[generated_name]
         curvedata = obj.data
         polyline = curvedata.splines[0]
@@ -188,7 +191,7 @@ def update_simple_tube(oper, context):
 
         polyline.resolution_u = oper.tube_resolution_u
 
-    print('generated name:', generated_name)
+    # print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
 
 
@@ -198,36 +201,36 @@ class AddSimpleTube(bpy.types.Operator):
     bl_label = "Add Simple Tube"
     bl_options = {'REGISTER', 'UNDO'}
 
-    base_name = StringProperty(default='TT_tube')
-    generated_name = StringProperty(default='')
+    base_name: StringProperty(default='TT_tube')
+    generated_name: StringProperty(default='')
 
-    subdiv = IntProperty(
+    subdiv: IntProperty(
         name="Profile Subdivision",
         description="subdivision level for the profile (circumference)",
         default=4, min=0, max=16)
 
-    tube_resolution_u = IntProperty(
+    tube_resolution_u: IntProperty(
         min=0, default=12, max=30,
         description="subdivision level for the length of the initial curve")
 
-    handle_ext_1 = FloatProperty(min=-8.0, default=2.0, max=8.0)
-    handle_ext_2 = FloatProperty(min=-8.0, default=2.0, max=8.0)
+    handle_ext_1: FloatProperty(min=-8.0, default=2.0, max=8.0)
+    handle_ext_2: FloatProperty(min=-8.0, default=2.0, max=8.0)
 
-    show_smooth = BoolProperty(default=False)
-    show_wire = BoolProperty(default=False)
-    keep_operator_alive = BoolProperty(default=True)
+    show_smooth: BoolProperty(default=False)
+    show_wire: BoolProperty(default=False)
+    keep_operator_alive: BoolProperty(default=True)
 
-    main_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
-    point1_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
-    point2_scale = FloatProperty(min=0.0001, default=1.0, max=5.0)
+    main_scale: FloatProperty(min=0.0001, default=1.0, max=5.0)
+    point1_scale: FloatProperty(min=0.0001, default=1.0, max=5.0)
+    point2_scale: FloatProperty(min=0.0001, default=1.0, max=5.0)
 
-    flip_v = BoolProperty()
-    flip_u = BoolProperty()
+    flip_v: BoolProperty()
+    flip_u: BoolProperty()
 
-    equal_radii = BoolProperty(default=0)
+    equal_radii: BoolProperty(default=0)
     # joined = BoolProperty(default=0)
 
-    do_not_process = BoolProperty(default=False)
+    do_not_process: BoolProperty(default=False)
 
     def draw(self, context):
         layout = self.layout
@@ -249,14 +252,14 @@ class AddSimpleTube(bpy.types.Operator):
             pid = split.row(align=True)
             pid.enabled = enabled
             pid.prop(self, pname, text=pstr)
-            a = pid.operator(callback, text="", icon="LINK")
+            a = pid.operator(callback, text="", icon="LINKED")
             a.fn = pname
             a.current_name = self.generated_name
             a.default = default
 
         er = not self.equal_radii
         # ROW 1
-        row = col.row(); split = row.split(percentage=0.5)
+        row = col.row(); split = row.split(factor=0.5)
         prop_n_reset(split, "handle_ext_1", "handle 1", 2.0)  # left
         prop_n_reset(split, "point1_scale", "radius_1", 1.0, er)  # right
 
@@ -267,16 +270,16 @@ class AddSimpleTube(bpy.types.Operator):
 
         # next row
         row = layout.row()
-        split = row.split(percentage=0.5)
+        split = row.split(factor=0.5)
         col_left = split.column()
 
-        col_left.label("display")
+        col_left.label(text="display")
         left_row = col_left.row()
         left_row.prop(self, "show_smooth", text="smooth", toggle=True)
         left_row.prop(self, "show_wire", text="wire", toggle=True)
 
         col_right = split.column()
-        col_right.label("flip over")
+        col_right.label(text="flip over")
         right_row = col_right.row()
         right_row.prop(self, "flip_u", text='Direction', toggle=True)
         right_row.prop(self, "flip_v", text='Normal', toggle=True)
@@ -317,8 +320,9 @@ class AddSimpleTube(bpy.types.Operator):
 
         obj = bpy.data.objects.new('Obj_' + curvedata.name, curvedata)
         obj.location = (0, 0, 0)  # object origin
-        bpy.context.scene.objects.link(obj)
+        bpy.context.collection.objects.link(obj)
         self.generated_name = obj.name
+        # print(':::', self.generated_name)
 
         obj.matrix_world = mw.copy()
 
@@ -336,43 +340,42 @@ class AddSimpleTube(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return self.do_not_process
+        # return self.do_not_process
+        obj = bpy.context.edit_object
+        if obj and obj.data.total_face_sel == 2:
+            return True 
 
     def make_real(self):
         objects = bpy.data.objects
         obj = objects[self.generated_name]  # this curve object
 
-        scene = bpy.context.scene
         settings = 'PREVIEW'
         modifiers = True
-        obj_data = obj.to_mesh(scene, modifiers, settings)
+        obj_data = obj.to_mesh(bpy.context.depsgraph, apply_modifiers=modifiers, calc_undeformed=settings)
 
         obj_n = objects.new('MESHED_' + obj.name, obj_data)
         obj_n.location = (0, 0, 0)
         obj_n.matrix_world = obj.matrix_world.copy()
-        bpy.context.scene.objects.link(obj_n)
+        bpy.context.collection.objects.link(obj_n)
         obj.hide_render = True
         obj.hide = True
         # return obj_n
 
     def execute(self, context):
+        if not self.generated_name:
+            self.initialize_new_tube(context)
+
         if self.do_not_process:
             return {'CANCELLED'}
         else:
             update_simple_tube(self, context)
             return {'FINISHED'}
 
-    def invoke(self, context, event):
-        self.initialize_new_tube(context)
-        return self.execute(context)
+    # def invoke(self, context, event):
+    #     print('called invoke')
+    #     self.initialize_new_tube(context)
+    #     return self.execute(context)
 
 
-
-def register():
-    bpy.utils.register_class(TubeCallbackOps)
-    bpy.utils.register_class(AddSimpleTube)
-
-
-def unregister():
-    bpy.utils.unregister_class(AddSimpleTube)
-    bpy.utils.unregister_class(TubeCallbackOps)
+classes = [TubeCallbackOps, AddSimpleTube]
+register, unregister = bpy.utils.register_classes_factory(classes)
