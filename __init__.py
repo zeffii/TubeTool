@@ -25,7 +25,7 @@ bl_info = {
     "name": "Tube Tool",
     "author": "Dealga McArdle",
     "version": (0, 0, 4),
-    "blender": (2, 7, 4),
+    "blender": (2, 80, 0),
     "location": "specials menu (key W)",
     "description": "Adds curve with endpoints on two arbitrary polygons",
     "wiki_url": "",
@@ -53,10 +53,10 @@ def menu_func(self, context):
 
 
 def register():
-    bpy.utils.register_module(__name__)
+    tt_operators.register()
     bpy.types.VIEW3D_MT_edit_mesh_specials.prepend(menu_func)
 
 
 def unregister():
     bpy.types.VIEW3D_MT_edit_mesh_specials.remove(menu_func)
-    bpy.utils.unregister_module(__name__)
+    tt_operators.unregister()
