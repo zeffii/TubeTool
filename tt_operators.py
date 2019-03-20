@@ -150,7 +150,11 @@ def update_simple_tube(oper, context):
 
     def modify_curve(medians, normals, curvename):
         # print('this happens')
-        obj = bpy.data.objects[generated_name]
+        obj = bpy.data.objects.get(generated_name)
+        if not obj:
+            oper.initialize_new_tube(context)
+            obj = bpy.data.objects.get(generated_name)
+
         curvedata = obj.data
         polyline = curvedata.splines[0]
 
