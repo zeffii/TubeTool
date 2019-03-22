@@ -362,7 +362,7 @@ class AddSimpleTube(bpy.types.Operator):
         obj_n.matrix_world = obj.matrix_world.copy()
         bpy.context.collection.objects.link(obj_n)
         obj.hide_render = True
-        obj.hide = True
+        obj.hide_viewport = True
         # return obj_n
 
     def execute(self, context):
@@ -375,8 +375,8 @@ class AddSimpleTube(bpy.types.Operator):
             update_simple_tube(self, context)
             return {'FINISHED'}
 
-    # def invoke(self, context, event):
-    #     print('called invoke')
+    def invoke(self, context, event):
+        print('called invoke')
     #     self.initialize_new_tube(context)
     #     return self.execute(context)
 
