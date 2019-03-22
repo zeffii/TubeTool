@@ -353,7 +353,7 @@ class AddSimpleTube(bpy.types.Operator):
         objects = bpy.data.objects
         obj = objects[self.generated_name]  # this curve object
 
-        settings = 'PREVIEW'
+        settings = False
         modifiers = True
         obj_data = obj.to_mesh(bpy.context.depsgraph, apply_modifiers=modifiers, calc_undeformed=settings)
 
