@@ -306,7 +306,7 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        self.must_initialize_curve = False
+        # self.must_initialize_curve = False
         # update_simple_tube(self, bpy.context)
 
     # def __init__(self):
