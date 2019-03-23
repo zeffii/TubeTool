@@ -66,33 +66,6 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            elif type_op == 'Join':
-
-                # # gets current name, but could be stored earlier..
-                # base_obj = bpy.context.edit_object
-                # base_obj_name = base_obj.name
-
-                # new_obj = cls.make_real()
-                # print(' made', new_obj.name)
-
-                # # let's use ops to add verts+faces to base_obj
-                # bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-                # bpy.ops.object.select_all(action='DESELECT')
-
-                # new_obj.select = True
-                # print('base obj name', base_obj_name)
-                # base_obj = bpy.data.objects[base_obj_name]
-                # base_obj.select = True
-                # bpy.context.scene.objects.active = base_obj
-
-                # # join and return back to edit mode.
-                # # bpy.ops.object.join()
-                # # bpy.ops.object.mode_set(mode='EDIT')
-
-                # # don't overwrite with existing mesh.
-                # cls.joined = True
-                ...
-
             else:
                 # would prefer to be implicit.. but self.default is OK for now.
                 # ideally, the value is derived from the prop default
@@ -149,11 +122,8 @@ def update_simple_tube(oper, context):
     op2_scale = scale2 / bevel_depth
 
     def modify_curve(medians, normals, curvename):
-        # print('this happens')
+
         obj = bpy.data.objects.get(generated_name)
-        if not obj:
-            oper.initialize_new_tube(context)
-            obj = bpy.data.objects.get(generated_name)
 
         curvedata = obj.data
         polyline = curvedata.splines[0]
@@ -235,6 +205,7 @@ class AddSimpleTube(bpy.types.Operator):
     # joined = BoolProperty(default=0)
 
     do_not_process: BoolProperty(default=False)
+    initialized_curve: BoolProperty(default=False)
 
     def draw(self, context):
         layout = self.layout
@@ -326,7 +297,7 @@ class AddSimpleTube(bpy.types.Operator):
         obj.location = (0, 0, 0)  # object origin
         bpy.context.collection.objects.link(obj)
         self.generated_name = obj.name
-        # print(':::', self.generated_name)
+        print(':::', self.generated_name)
 
         obj.matrix_world = mw.copy()
 
@@ -335,12 +306,15 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        update_simple_tube(self, bpy.context)
+        # self.must_initialize_curve = False
+        # update_simple_tube(self, bpy.context)
 
     # def __init__(self):
+    #     print("Start")
+    #     self.must_initialize_curve = True
 
-    def __del__(self):
-        print("End")
+    # def __del__(self):
+    #     print("End")
 
     @classmethod
     def poll(self, context):
@@ -353,7 +327,7 @@ class AddSimpleTube(bpy.types.Operator):
         objects = bpy.data.objects
         obj = objects[self.generated_name]  # this curve object
 
-        settings = 'PREVIEW'
+        settings = False
         modifiers = True
         obj_data = obj.to_mesh(bpy.context.depsgraph, apply_modifiers=modifiers, calc_undeformed=settings)
 
@@ -362,16 +336,15 @@ class AddSimpleTube(bpy.types.Operator):
         obj_n.matrix_world = obj.matrix_world.copy()
         bpy.context.collection.objects.link(obj_n)
         obj.hide_render = True
-        obj.hide = True
+        obj.hide_viewport = True
         # return obj_n
 
     def execute(self, context):
-        if not self.generated_name:
-            self.initialize_new_tube(context)
 
         if self.do_not_process:
             return {'CANCELLED'}
         else:
+            self.initialize_new_tube(context)
             update_simple_tube(self, context)
             return {'FINISHED'}
 
