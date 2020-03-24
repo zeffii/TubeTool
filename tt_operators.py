@@ -82,6 +82,7 @@ def get_medians_and_normals(oper, context, mode):
     """
     medians = []
     normals = []
+    extra_data = None
 
     if mode == "ONE":
         obj_main = bpy.context.edit_object
@@ -106,13 +107,19 @@ def get_medians_and_normals(oper, context, mode):
             normals.append(f.normal)
             medians.append(median(f))
 
+        bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
+        scale2 = (medians[1] - (faces[1].verts[0].co)).length
+        op2_scale = scale2 / bevel_depth
+
+        extra_data = bevel_depth, scale2, op2_scale
+
     elif mode == "TWO":
         obj_one = bpy.context.selected_objects[0]
         obj_two = bpy.context.selected_objects[1]
         m1 = obj_one.matrix_world
         m2 = obj_two.matrix_world
 
-
+    return medians, normals, extra_data
 
 
 def update_simple_tube(oper, context):
@@ -123,18 +130,15 @@ def update_simple_tube(oper, context):
         return
 
     mode = current_mode.get(hash(oper))
+    print('found mode:', mode)
 
     details = get_medians_and_normals(oper, context, mode)
     if not details:
         return
     else:
-        medians, normals = details
+        medians, normals, extra_data = details
+        bevel_depth, scale2, op2_scale = extra_data
 
-    # This will automatically scale the bezierpoint radii as a
-    # function of the size of the polygons
-    bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
-    scale2 = (medians[1] - (faces[1].verts[0].co)).length
-    op2_scale = scale2 / bevel_depth
 
     def modify_curve(medians, normals, curvename):
 
@@ -309,6 +313,7 @@ class AddSimpleTube(bpy.types.Operator):
                 self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
                 return
             current_mode[self_id] = "ONE"
+            mw = obj_main.matrix_world
         elif objects_main:
             if not all((obj.total_face_sel == 1) for obj in objects_main):
                 self.do_not_process = True
@@ -320,7 +325,6 @@ class AddSimpleTube(bpy.types.Operator):
             return
 
 
-        mw = obj_main.matrix_world
 
         curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
         curvedata.dimensions = '3D'
