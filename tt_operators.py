@@ -19,6 +19,8 @@ def are_two_objects_in_editmode(objs):
         if all((obj.type == "MESH" and obj.mode == "EDIT") for obj in objs):
             return True
 
+current_mode = {}
+
 
 class TubeCallbackOps(bpy.types.Operator):
 
@@ -79,6 +81,8 @@ def update_simple_tube(oper, context):
     if not generated_name:
         print('being called without any geometry')
         return
+
+    # current_mode[has(self)] =
 
     obj_main = bpy.context.edit_object
 
@@ -274,20 +278,20 @@ class AddSimpleTube(bpy.types.Operator):
         obj_main = bpy.context.edit_object
         objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
 
-        MODE = "NONE"
+        current_mode[has(self)] = "NONE"
 
         if obj_main and not objects_main:
             if not (obj_main.data.total_face_sel == 2):
                 self.do_not_process = True
                 self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
                 return
-            MODE = "ONE"
+            current_mode[has(self)] = "ONE"
         elif objects_main:
             if not all((obj.total_face_sel == 1) for obj in objects_main):
                 self.do_not_process = True
                 self.report({'WARNING'}, 'if two objects are selected, then select one face on each object')
                 return
-            MODE = "TWO"
+            current_mode[has(self)] = "TWO"
         else:
             self.report({'WARNING'}, 'if one object in edit mode, pick 2 faces only. if two objects in edit mode, pick 1 face on each.')
             return
@@ -304,7 +308,8 @@ class AddSimpleTube(bpy.types.Operator):
         self.generated_name = obj.name
         print(':::', self.generated_name)
 
-        obj.matrix_world = mw.copy()
+        if current_mode[has(self)] == "ONE":
+            obj.matrix_world = mw.copy()
 
         polyline = curvedata.splines.new('BEZIER')
         polyline.bezier_points.add(1)
