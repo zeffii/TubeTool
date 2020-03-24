@@ -274,15 +274,20 @@ class AddSimpleTube(bpy.types.Operator):
         obj_main = bpy.context.edit_object
         objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
 
+        MODE = "NONE"
+
         if obj_main and not objects_main:
             if not (obj_main.data.total_face_sel == 2):
                 self.do_not_process = True
                 self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
                 return
+            MODE = "ONE"
         elif objects_main:
             if not all((obj.total_face_sel == 1) for obj in objects_main):
                 self.do_not_process = True
-                self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
+                self.report({'WARNING'}, 'if two objects are selected, then select one face on each object')
+                return
+            MODE = "TWO"
         else:
             self.report({'WARNING'}, 'if one object in edit mode, pick 2 faces only. if two objects in edit mode, pick 1 face on each.')
             return
@@ -306,15 +311,6 @@ class AddSimpleTube(bpy.types.Operator):
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        # self.must_initialize_curve = False
-        # update_simple_tube(self, bpy.context)
-
-    # def __init__(self):
-    #     print("Start")
-    #     self.must_initialize_curve = True
-
-    # def __del__(self):
-    #     print("End")
 
     @classmethod
     def poll(self, context):
