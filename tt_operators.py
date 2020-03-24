@@ -14,6 +14,11 @@ from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
 
+def are_two_objects_in_editmode(objs):
+    if objs and len(objs) == 2:
+        if all((obj.type == "MESH" and obj.mode == "EDIT") for obj in objs):
+            return True
+
 
 class TubeCallbackOps(bpy.types.Operator):
 
@@ -267,11 +272,21 @@ class AddSimpleTube(bpy.types.Operator):
         '''
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
+        objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
 
-        if not (obj_main.data.total_face_sel == 2):
-            self.do_not_process = True
-            self.report({'WARNING'}, 'select two faces only, and they must be on the same object')
+        if obj_main and not objects_main:
+            if not (obj_main.data.total_face_sel == 2):
+                self.do_not_process = True
+                self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
+                return
+        elif objects_main:
+            if not all((obj.total_face_sel == 1) for obj in objects_main):
+                self.do_not_process = True
+                self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
+        else:
+            self.report({'WARNING'}, 'if one object in edit mode, pick 2 faces only. if two objects in edit mode, pick 1 face on each.')
             return
+
 
         mw = obj_main.matrix_world
 
@@ -306,7 +321,9 @@ class AddSimpleTube(bpy.types.Operator):
         # return self.do_not_process
         obj = bpy.context.edit_object
         if obj and obj.data.total_face_sel == 2:
-            return True 
+            return True
+
+        return are_two_objects_in_editmode(bpy.context.selected_objects)
 
     def make_real(self):
         objects = bpy.data.objects
@@ -332,11 +349,6 @@ class AddSimpleTube(bpy.types.Operator):
             self.initialize_new_tube(context)
             update_simple_tube(self, context)
             return {'FINISHED'}
-
-    # def invoke(self, context, event):
-    #     print('called invoke')
-    #     self.initialize_new_tube(context)
-    #     return self.execute(context)
 
 
 classes = [TubeCallbackOps, AddSimpleTube]
