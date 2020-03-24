@@ -115,9 +115,12 @@ def get_medians_and_normals(oper, context, mode):
         for obj in objs:
             m = obj.matrix_world
             bm = bmesh.from_edit_mesh(obj.data)
+
             f = [f for f in bm.faces if f.select][0]
             first_coords.append(m @ f.verts[0].co)
+            
             normals.append(f.normal)
+            
             medians.append(m @ median(f))
 
         bevel_depth = (medians[0] - first_coords[0]).length
