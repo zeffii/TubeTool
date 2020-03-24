@@ -90,10 +90,9 @@ def get_medians_and_normals(oper, context, mode):
         bm = bmesh.from_edit_mesh(me)
 
         # get active face indices
-        if not oper.flip_u:
-            faces = [f for f in bm.faces if f.select]
-        else:
-            faces = list(reversed([f for f in bm.faces if f.select]))
+        faces = [f for f in bm.faces if f.select]
+        if oper.flip_u:
+            faces = list(reversed(faces))
 
         for f in faces:
             if len(medians) > 2:
