@@ -110,19 +110,20 @@ def get_medians_and_normals(oper, context, mode):
         obj_one = bpy.context.selected_objects[0]
         obj_two = bpy.context.selected_objects[1]
 
+        first_coords = []
         objs = [obj_two, obj_one] if oper.flip_u else [obj_one, obj_two]
         for obj in objs:
             m = obj.matrix_world
             bm = bmesh.from_edit_mesh(obj.data)
             f = [f for f in bm.faces if f.select][0]
+            first_coords.append(m @ f[0].verts[0].co)
             normals.append(f.normal)
             medians.append(m @ median(f))
 
-        # this doesnt work yet becases faces is not valid in this context.
-        # bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
-        # scale2 = (medians[1] - (faces[1].verts[0].co)).length
-        # op2_scale = scale2 / bevel_depth
-        # extra_data = bevel_depth, scale2, op2_scale
+        bevel_depth = (medians[0] - first_coords[0]).length
+        scale2 = (medians[1] - first_coords[1]).length
+        op2_scale = scale2 / bevel_depth
+        extra_data = bevel_depth, scale2, op2_scale
 
     return medians, normals, extra_data
 
