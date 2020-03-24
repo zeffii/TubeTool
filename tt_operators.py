@@ -86,11 +86,6 @@ def get_medians_and_normals(oper, context, mode):
 
     if mode == "ONE":
         obj_main = bpy.context.edit_object
-
-        # if not obj_main:
-        #    return
-
-        # mw = obj_main.matrix_world
         me = obj_main.data
         bm = bmesh.from_edit_mesh(me)
 
