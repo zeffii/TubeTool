@@ -116,7 +116,7 @@ def get_medians_and_normals(oper, context, mode):
             m = obj.matrix_world
             bm = bmesh.from_edit_mesh(obj.data)
             f = [f for f in bm.faces if f.select][0]
-            first_coords.append(m @ f[0].verts[0].co)
+            first_coords.append(m @ f.verts[0].co)
             normals.append(f.normal)
             medians.append(m @ median(f))
 
@@ -321,7 +321,7 @@ class AddSimpleTube(bpy.types.Operator):
             current_mode[self_id] = "ONE"
             mw = obj_main.matrix_world
         elif objects_main:
-            if not all((obj.total_face_sel == 1) for obj in objects_main):
+            if not all((obj.data.total_face_sel == 1) for obj in objects_main):
                 self.do_not_process = True
                 self.report({'WARNING'}, 'if two objects are selected, then select one face on each object')
                 return
