@@ -9,10 +9,18 @@
 import bpy
 import bmesh
 from mathutils import Vector
+from mathutils.geometry import normal
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
+
+def are_two_objects_in_editmode(objs):
+    if objs and len(objs) == 2:
+        if all((obj.type == "MESH" and obj.mode == "EDIT") for obj in objs):
+            return True
+
+current_mode = {}
 
 
 class TubeCallbackOps(bpy.types.Operator):
@@ -67,6 +75,62 @@ class TubeCallbackOps(bpy.types.Operator):
 def median(face):
     return face.calc_center_median()
 
+def get_medians_and_normals(oper, context, mode):
+    """
+    because this is a post hoc implementation to cater for 2.8 ability to multi-select objects in 
+    edit mode, this is a verbose routine. 
+
+    """
+    medians = []
+    normals = []
+    extra_data = None
+
+    if mode == "ONE":
+        obj_main = bpy.context.edit_object
+        me = obj_main.data
+        bm = bmesh.from_edit_mesh(me)
+
+        # get active face indices
+        faces = [f for f in bm.faces if f.select]
+        if oper.flip_u:
+            faces = list(reversed(faces))
+
+        for f in faces:
+            if len(medians) > 2:
+                # dont select more than 2 faces.
+                break
+            normals.append(f.normal)
+            medians.append(median(f))
+
+        bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
+        scale2 = (medians[1] - (faces[1].verts[0].co)).length
+        op2_scale = scale2 / bevel_depth
+        extra_data = bevel_depth, scale2, op2_scale
+
+    elif mode == "TWO":
+        obj_one = bpy.context.selected_objects[0]
+        obj_two = bpy.context.selected_objects[1]
+
+        first_coords = []
+        objs = [obj_two, obj_one] if oper.flip_u else [obj_one, obj_two]
+        for obj in objs:
+            m = obj.matrix_world
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            # instead of transforming the entire bm using bmesh.ops.transform
+            # we can multiply only the selected geometry. hopefully
+            f = [f for f in bm.faces if f.select][0]
+            first_coords.append(m @ f.verts[0].co)
+            normals.append(normal([(m @ v.co) for v in f.verts]))
+            medians.append(m @ median(f))
+
+        bevel_depth = (medians[0] - first_coords[0]).length
+        scale2 = (medians[1] - first_coords[1]).length
+        op2_scale = scale2 / bevel_depth
+        extra_data = bevel_depth, scale2, op2_scale
+
+    return medians, normals, extra_data
+
 
 def update_simple_tube(oper, context):
 
@@ -75,36 +139,16 @@ def update_simple_tube(oper, context):
         print('being called without any geometry')
         return
 
-    obj_main = bpy.context.edit_object
+    mode = current_mode.get(hash(oper))
+    print('found mode:', mode)
 
-    if not obj_main:
+    details = get_medians_and_normals(oper, context, mode)
+    if not details:
         return
-
-    mw = obj_main.matrix_world
-    me = obj_main.data
-    bm = bmesh.from_edit_mesh(me)
-
-    # get active face indices
-    medians = []
-    normals = []
-
-    if not oper.flip_u:
-        faces = [f for f in bm.faces if f.select]
     else:
-        faces = list(reversed([f for f in bm.faces if f.select]))
+        medians, normals, extra_data = details
+        bevel_depth, scale2, op2_scale = extra_data
 
-    for f in faces:
-        if len(medians) > 2:
-            # dont select more than 2 faces.
-            break
-        normals.append(f.normal)
-        medians.append(median(f))
-
-    # This will automatically scale the bezierpoint radii as a
-    # function of the size of the polygons
-    bevel_depth = (medians[0] - (faces[0].verts[0].co)).length
-    scale2 = (medians[1] - (faces[1].verts[0].co)).length
-    op2_scale = scale2 / bevel_depth
 
     def modify_curve(medians, normals, curvename):
 
@@ -267,13 +311,30 @@ class AddSimpleTube(bpy.types.Operator):
         '''
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
+        objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
 
-        if not (obj_main.data.total_face_sel == 2):
-            self.do_not_process = True
-            self.report({'WARNING'}, 'select two faces only, and they must be on the same object')
+        self_id = hash(self)
+
+        current_mode[self_id] = None
+
+        if obj_main and not objects_main:
+            if not (obj_main.data.total_face_sel == 2):
+                self.do_not_process = True
+                self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
+                return
+            current_mode[self_id] = "ONE"
+            mw = obj_main.matrix_world
+        elif objects_main:
+            if not all((obj.data.total_face_sel == 1) for obj in objects_main):
+                self.do_not_process = True
+                self.report({'WARNING'}, 'if two objects are selected, then select one face on each object')
+                return
+            current_mode[self_id] = "TWO"
+        else:
+            self.report({'WARNING'}, 'if one object in edit mode, pick 2 faces only. if two objects in edit mode, pick 1 face on each.')
             return
 
-        mw = obj_main.matrix_world
+
 
         curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
         curvedata.dimensions = '3D'
@@ -282,31 +343,25 @@ class AddSimpleTube(bpy.types.Operator):
         obj.location = (0, 0, 0)  # object origin
         bpy.context.collection.objects.link(obj)
         self.generated_name = obj.name
-        print(':::', self.generated_name)
+        print(':::', self.generated_name, current_mode)
 
-        obj.matrix_world = mw.copy()
+        if current_mode[self_id] == "ONE":
+            obj.matrix_world = mw.copy()
 
         polyline = curvedata.splines.new('BEZIER')
         polyline.bezier_points.add(1)
         polyline.use_smooth = False
         obj.data.fill_mode = 'FULL'
 
-        # self.must_initialize_curve = False
-        # update_simple_tube(self, bpy.context)
-
-    # def __init__(self):
-    #     print("Start")
-    #     self.must_initialize_curve = True
-
-    # def __del__(self):
-    #     print("End")
 
     @classmethod
     def poll(self, context):
         # return self.do_not_process
         obj = bpy.context.edit_object
         if obj and obj.data.total_face_sel == 2:
-            return True 
+            return True
+
+        return are_two_objects_in_editmode(bpy.context.selected_objects)
 
     def make_real(self):
         objects = bpy.data.objects
@@ -332,11 +387,6 @@ class AddSimpleTube(bpy.types.Operator):
             self.initialize_new_tube(context)
             update_simple_tube(self, context)
             return {'FINISHED'}
-
-    # def invoke(self, context, event):
-    #     print('called invoke')
-    #     self.initialize_new_tube(context)
-    #     return self.execute(context)
 
 
 classes = [TubeCallbackOps, AddSimpleTube]
