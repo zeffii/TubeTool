@@ -9,6 +9,7 @@
 import bpy
 import bmesh
 from mathutils import Vector
+from mathutils.geometry import normal
 
 from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
@@ -116,11 +117,11 @@ def get_medians_and_normals(oper, context, mode):
             m = obj.matrix_world
             bm = bmesh.from_edit_mesh(obj.data)
 
+            # instead of transforming the entire bm using bmesh.ops.transform
+            # we can multiply only the selected geometry. hopefully
             f = [f for f in bm.faces if f.select][0]
             first_coords.append(m @ f.verts[0].co)
-            
-            normals.append(f.normal)
-            
+            normals.append(normal([(m @ v.co) for v in f.verts]))
             medians.append(m @ median(f))
 
         bevel_depth = (medians[0] - first_coords[0]).length
