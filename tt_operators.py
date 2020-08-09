@@ -22,6 +22,10 @@ def are_two_objects_in_editmode(objs):
 
 current_mode = {}
 
+docstring = """
+select two polygons only, then run this operator. polygons can be on separate objects.
+
+"""
 
 class TubeCallbackOps(bpy.types.Operator):
 
@@ -388,6 +392,9 @@ class AddSimpleTube(bpy.types.Operator):
             update_simple_tube(self, context)
             return {'FINISHED'}
 
+
+TubeCallbackOps.__doc__ = docstring
+AddSimpleTube.__doc__ = docstring
 
 classes = [TubeCallbackOps, AddSimpleTube]
 register, unregister = bpy.utils.register_classes_factory(classes)
