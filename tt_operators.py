@@ -22,10 +22,8 @@ def are_two_objects_in_editmode(objs):
 
 current_mode = {}
 
-docstring = """
-select two polygons only, then run this operator. polygons can be on separate objects.
-
-"""
+docstring = """\
+select two polygons only, then run this operator. polygons can be on separate objects."""
 
 class TubeCallbackOps(bpy.types.Operator):
 
