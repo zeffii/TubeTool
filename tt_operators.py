@@ -22,8 +22,7 @@ def are_two_objects_in_editmode(objs):
 
 current_mode = {}
 
-docstring = """\
-select two polygons only, then run this operator. polygons can be on separate objects."""
+docstring = """select two verts or polygons only, then run this operator. selections can be on separate objects."""
 
 class TubeCallbackOps(bpy.types.Operator):
 
@@ -130,6 +129,44 @@ def get_medians_and_normals(oper, context, mode):
         scale2 = (medians[1] - first_coords[1]).length
         op2_scale = scale2 / bevel_depth
         extra_data = bevel_depth, scale2, op2_scale
+
+    elif mode == "THREE":
+        # single object, two verts
+        obj_main = bpy.context.edit_object
+        me = obj_main.data
+        bm = bmesh.from_edit_mesh(me)
+        verts = []
+        for v in bm.verts:
+            if len(medians) > 2:
+                break
+            verts.append(v)
+            normals.append(v.normal)
+            medians.append(v.co)
+
+        bevel_depth = ... # (medians[0] - first_coords[0]).length
+        scale2 = ... # (medians[1] - first_coords[1]).length
+        op2_scale = scale2 / bevel_depth
+        extra_data = bevel_depth, scale2, op2_scale
+
+    elif mode == "FOUR":
+        # two objects, single vert each
+        obj_one = bpy.context.selected_objects[0]
+        obj_two = bpy.context.selected_objects[1]
+        verts = []
+        objs = [obj_two, obj_one] if oper.flip_u else [obj_one, obj_two]
+        for obj in objs:
+            m = obj.matrix_world
+            bm = bmesh.from_edit_mesh(obj.data)
+
+            verts.append(v)
+            normals.append(...)
+            medians.append(...)
+
+        bevel_depth = ... # (medians[0] - first_coords[0]).length
+        scale2 = ... # (medians[1] - first_coords[1]).length
+        op2_scale = scale2 / bevel_depth
+        extra_data = bevel_depth, scale2, op2_scale
+
 
     return medians, normals, extra_data
 
@@ -300,43 +337,49 @@ class AddSimpleTube(bpy.types.Operator):
         k.fn = 'To Mesh'
         k.current_name = self.generated_name
 
-        # k = col.operator(callback, text="Join")
-        # k.fn = 'Join'
-        # k.current_name = self.generated_name
-
     def initialize_new_tube(self, context):
-        '''
+
+        """
         - create curve
         - assign default values
         - add to scene
         - record given name
-        '''
+        """
+
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
         objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
 
         self_id = hash(self)
-
         current_mode[self_id] = None
 
         if obj_main and not objects_main:
-            if not (obj_main.data.total_face_sel == 2):
+            # if face mode and single object
+            if (obj_main.data.total_face_sel == 2):
+                mw = obj_main.matrix_world
+                current_mode[self_id] = "ONE"
+            elif (obj_main.data.total_vert_sel == 2):
+                mw = obj_main.matrix_world
+                current_mode[self_id] = "THREE"
+            else:
                 self.do_not_process = True
-                self.report({'WARNING'}, 'if only one object is selected, then select two faces only')
+                self.report({'WARNING'}, 'if only one object is selected, then select two faces or verts only')
                 return
-            current_mode[self_id] = "ONE"
-            mw = obj_main.matrix_world
+
         elif objects_main:
-            if not all((obj.data.total_face_sel == 1) for obj in objects_main):
+
+            if all((obj.data.total_face_sel == 1) for obj in objects_main):
+                current_mode[self_id] = "TWO"
+            elif all((obj.data.total_vert_sel == 1) for obj in objects_main):
+                current_mode[self_id] = "FOUR"
+            else:
                 self.do_not_process = True
                 self.report({'WARNING'}, 'if two objects are selected, then select one face on each object')
                 return
-            current_mode[self_id] = "TWO"
         else:
-            self.report({'WARNING'}, 'if one object in edit mode, pick 2 faces only. if two objects in edit mode, pick 1 face on each.')
+            msg = 'if one object in edit mode, pick 2 faces/verts only. if two objects in edit mode, pick 1 face/vertex on each.'
+            self.report({'WARNING'}, msg)
             return
-
-
 
         curvedata = bpy.data.curves.new(name=self.base_name, type='CURVE')
         curvedata.dimensions = '3D'
@@ -347,7 +390,7 @@ class AddSimpleTube(bpy.types.Operator):
         self.generated_name = obj.name
         print(':::', self.generated_name, current_mode)
 
-        if current_mode[self_id] == "ONE":
+        if current_mode[self_id] in {"ONE", "THREE"}:
             obj.matrix_world = mw.copy()
 
         polyline = curvedata.splines.new('BEZIER')
@@ -360,7 +403,7 @@ class AddSimpleTube(bpy.types.Operator):
     def poll(self, context):
         # return self.do_not_process
         obj = bpy.context.edit_object
-        if obj and obj.data.total_face_sel == 2:
+        if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
             return True
 
         return are_two_objects_in_editmode(bpy.context.selected_objects)
