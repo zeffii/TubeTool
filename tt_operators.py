@@ -76,6 +76,13 @@ class TubeCallbackOps(bpy.types.Operator):
 def median(face):
     return face.calc_center_median()
 
+def avg_edge_length_of_connected_edges(v):
+    if not v.link_edges:
+        return 0
+    lengths = [e.length for e in v.link_edges]
+    return sum(lengths) / len(lengths)
+
+
 def get_medians_and_normals(oper, context, mode):
     """
     because this is a post hoc implementation to cater for 2.8 ability to multi-select objects in 
@@ -135,16 +142,20 @@ def get_medians_and_normals(oper, context, mode):
         obj_main = bpy.context.edit_object
         me = obj_main.data
         bm = bmesh.from_edit_mesh(me)
-        verts = []
+        # verts = []
+        avg_edge_length = []
         for v in bm.verts:
             if len(medians) > 2:
                 break
-            verts.append(v)
-            normals.append(v.normal)
-            medians.append(v.co)
+            if v.select:
+                # verts.append(v)
+                avg_edge_length.append(avg_edge_length_of_connected_edges(v))
+                normals.append(v.normal)
+                medians.append(v.co)
 
-        bevel_depth = ... # (medians[0] - first_coords[0]).length
-        scale2 = ... # (medians[1] - first_coords[1]).length
+        # use v.link_edges ,  (average length)/2 of all link_edges 
+        bevel_depth = avg_edge_length[0] / 2
+        scale2 = avg_edge_length[1] / 2
         op2_scale = scale2 / bevel_depth
         extra_data = bevel_depth, scale2, op2_scale
 
@@ -153,17 +164,25 @@ def get_medians_and_normals(oper, context, mode):
         obj_one = bpy.context.selected_objects[0]
         obj_two = bpy.context.selected_objects[1]
         verts = []
+        avg_edge_length = []
         objs = [obj_two, obj_one] if oper.flip_u else [obj_one, obj_two]
         for obj in objs:
+
+            if len(medians) > 2:
+                break
+
             m = obj.matrix_world
             bm = bmesh.from_edit_mesh(obj.data)
+            for v in bm.verts:
+                if v.select:
+                    verts.append(v)
+                    avg_edge_length.append(avg_edge_length_of_connected_edges(v))
+                    normals.append(v.normal)
+                    medians.append(v.co)
+                    break
 
-            verts.append(v)
-            normals.append(...)
-            medians.append(...)
-
-        bevel_depth = ... # (medians[0] - first_coords[0]).length
-        scale2 = ... # (medians[1] - first_coords[1]).length
+        bevel_depth = avg_edge_length[0] / 2
+        scale2 = avg_edge_length[1] / 2
         op2_scale = scale2 / bevel_depth
         extra_data = bevel_depth, scale2, op2_scale
 
