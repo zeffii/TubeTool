@@ -79,7 +79,7 @@ def median(face):
 def avg_edge_length_of_connected_edges(v):
     if not v.link_edges:
         return 0
-    lengths = [e.length for e in v.link_edges]
+    lengths = [e.calc_length() for e in v.link_edges]
     return sum(lengths) / len(lengths)
 
 
@@ -177,8 +177,8 @@ def get_medians_and_normals(oper, context, mode):
                 if v.select:
                     verts.append(v)
                     avg_edge_length.append(avg_edge_length_of_connected_edges(v))
-                    normals.append(v.normal)
-                    medians.append(v.co)
+                    normals.append(v.normal)  # not sure why this has weird results with "m @ v.normal"
+                    medians.append(m @ v.co)
                     break
 
         bevel_depth = avg_edge_length[0] / 2
