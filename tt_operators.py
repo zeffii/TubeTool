@@ -57,13 +57,13 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            else:
-                # would prefer to be implicit.. but self.default is OK for now.
-                # ideally, the value is derived from the prop default
-                # of cls.type_op. but for now it is passed explicitely.
-                # Barf. Dryheave.
-                setattr(cls, type_op, self.default)
-                cls.execute(context)
+            # else:
+            #     # would prefer to be implicit.. but self.default is OK for now.
+            #     # ideally, the value is derived from the prop default
+            #     # of cls.type_op. but for now it is passed explicitely.
+            #     # Barf. Dryheave.
+            #     setattr(cls, type_op, self.default)
+            #     # cls.execute(context)
 
     def execute(self, context):
         self.dispatch(context, self.fn)
@@ -250,6 +250,13 @@ def update_simple_tube(oper, context):
     # print('generated name:', generated_name)
     modify_curve(medians, normals, generated_name)
 
+def updateOperator(self, context, origin):
+    if getattr(self, origin):
+        print("cm triggered")
+        setattr(self, origin, False)
+        prop_name = origin.replace("reset_", "")
+        self.property_unset(prop_name)
+        update_simple_tube(self, context)
 
 class AddSimpleTube(bpy.types.Operator):
 
@@ -288,6 +295,11 @@ class AddSimpleTube(bpy.types.Operator):
     do_not_process: BoolProperty(default=False)
     initialized_curve: BoolProperty(default=False)
 
+    reset_handle_ext_1: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_handle_ext_1"))
+    reset_point1_scale: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_point1_scale"))
+    reset_point2_scale: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_point2_scale"))
+    reset_handle_ext_2: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_handle_ext_2"))
+
     def are_two_objects_in_editmode(self):
         objs = bpy.context.selected_objects
         if objs and len(objs) == 2:
@@ -309,26 +321,24 @@ class AddSimpleTube(bpy.types.Operator):
 
         col.separator()
 
-        def prop_n_reset(split, pname, pstr, default, enabled=True):
+        def prop_n_reset(split, pname, display_name, enabled=True):
             ''' I draw a slider and an operator to reset the slider '''
             pid = split.row(align=True)
             pid.enabled = enabled
-            pid.prop(self, pname, text=pstr)
-            a = pid.operator(callback, text="", icon="LINKED")
-            a.fn = pname
-            a.current_name = self.generated_name
-            a.default = default
+            pid.prop(self, pname, text=display_name)
+            pid.prop(self, "reset_" + pname, text="", icon="LINKED")
+            
 
         er = not self.equal_radii
         # ROW 1
         row = col.row(); split = row.split(factor=0.5)
-        prop_n_reset(split, "handle_ext_1", "handle 1", 2.0)  # left
-        prop_n_reset(split, "point1_scale", "radius_1", 1.0, er)  # right
+        prop_n_reset(split, "handle_ext_1", "handle 1")       # left
+        prop_n_reset(split, "point1_scale", "radius 1", er)  # right
 
         # ROW 2
         row = col.row(); split = row.split()
-        prop_n_reset(split, "handle_ext_2", "handle 2", 2.0)  # left
-        prop_n_reset(split, "point2_scale", "radius_2", 1.0, er)  # right
+        prop_n_reset(split, "handle_ext_2", "handle 2")      # left
+        prop_n_reset(split, "point2_scale", "radius 2", er)  # right
 
         # next row
         row = layout.row()
