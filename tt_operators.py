@@ -57,13 +57,6 @@ class TubeCallbackOps(bpy.types.Operator):
             elif type_op == "To Mesh":
                 cls.make_real()
 
-            # else:
-            #     # would prefer to be implicit.. but self.default is OK for now.
-            #     # ideally, the value is derived from the prop default
-            #     # of cls.type_op. but for now it is passed explicitely.
-            #     # Barf. Dryheave.
-            #     setattr(cls, type_op, self.default)
-            #     # cls.execute(context)
 
     def execute(self, context):
         self.dispatch(context, self.fn)
