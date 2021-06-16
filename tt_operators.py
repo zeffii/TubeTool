@@ -422,6 +422,7 @@ class AddSimpleTube(bpy.types.Operator):
     def poll(self, context):
         # return self.do_not_process
         obj = bpy.context.edit_object
+        print(f"faces={obj.data.total_face_sel}, verts={obj.data.total_vert_sel}")
         if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
             return True
 
