@@ -10,57 +10,11 @@ import bpy
 import bmesh
 from mathutils import Vector
 from mathutils.geometry import normal
-
-from bpy.props import (
-    IntProperty, FloatProperty, StringProperty, BoolProperty
-)
-
+from bpy.props import IntProperty, FloatProperty, StringProperty, BoolProperty
 
 
 current_mode = {}
-
 docstring = """select two verts or polygons only, then run this operator. selections can be on separate objects."""
-
-class TubeCallbackOps(bpy.types.Operator):
-
-    bl_idname = "object.tube_callback"
-    bl_label = "Tube Callback (private)"
-    bl_options = {"INTERNAL"}
-
-    current_name: StringProperty(default='')
-    fn: StringProperty(default='')
-    default: FloatProperty()
-
-    def dispatch(self, context, type_op):
-        wm = context.window_manager
-        operators = wm.operators
-
-        # only do this part if also current_name is passed in
-        if self.current_name:
-
-            cls = None
-            for k in operators:
-                if k.bl_idname == 'MESH_OT_add_curvebased_tube':
-                    if k.generated_name == self.current_name:
-                        cls = k
-
-            if not cls:
-                ''' all callback functions require a valid class reference '''
-                return
-
-            if type_op == "Reset radii":
-                print('attempt reset:', cls.generated_name)
-                cls.main_scale = 1.0
-                cls.point1_scale = 1.0
-                cls.point2_scale = 1.0
-
-            elif type_op == "To Mesh":
-                cls.make_real()
-
-
-    def execute(self, context):
-        self.dispatch(context, self.fn)
-        return {'FINISHED'}
 
 
 def median(face):
@@ -245,7 +199,6 @@ def update_simple_tube(oper, context):
 
 def updateOperator(self, context, origin):
     if getattr(self, origin):
-        print("cm triggered")
         setattr(self, origin, False)
         prop_name = origin.replace("reset_", "")
         self.property_unset(prop_name)
@@ -292,6 +245,22 @@ class AddSimpleTube(bpy.types.Operator):
     reset_point1_scale: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_point1_scale"))
     reset_point2_scale: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_point2_scale"))
     reset_handle_ext_2: BoolProperty(default=False, update=lambda s, c: updateOperator(s, c, "reset_handle_ext_2"))
+
+    def updateDelegation(self, context):
+        if self.trigger_bool_make_real:
+            self.trigger_bool_make_real = False
+            self.make_real()
+
+    def updateResetRadii(self, context):
+        if self.trigger_bool_reset_radii:
+            self.trigger_bool_reset_radii = False
+            print('attempt reset:', self.generated_name)
+            self.main_scale = 1.0
+            self.point1_scale = 1.0
+            self.point2_scale = 1.0
+
+    trigger_bool_make_real: BoolProperty(default=False, description="Make the tube final", update=updateDelegation)
+    trigger_bool_reset_radii: BoolProperty(default=False, description="Reset all radii and scale", update=updateResetRadii)
 
     def are_two_objects_in_editmode(self):
         objs = bpy.context.selected_objects
@@ -350,14 +319,8 @@ class AddSimpleTube(bpy.types.Operator):
         right_row.prop(self, "flip_v", text='Normal', toggle=True)
 
         col = layout.column()
-
-        k = col.operator(callback, text="Reset radii")
-        k.fn = "Reset radii"
-        k.current_name = self.generated_name
-
-        k = col.operator(callback, text="To Mesh")
-        k.fn = 'To Mesh'
-        k.current_name = self.generated_name
+        col.prop(self, "trigger_bool_reset_radii", text="Reset radii", toggle=True)
+        col.prop(self, "trigger_bool_make_real", text="To Mesh", toggle=True)
 
     def initialize_new_tube(self, context):
 
@@ -457,8 +420,7 @@ class AddSimpleTube(bpy.types.Operator):
             return {'FINISHED'}
 
 
-TubeCallbackOps.__doc__ = docstring
 AddSimpleTube.__doc__ = docstring
 
-classes = [TubeCallbackOps, AddSimpleTube]
+classes = [AddSimpleTube]
 register, unregister = bpy.utils.register_classes_factory(classes)
