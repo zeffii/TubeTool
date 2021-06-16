@@ -320,7 +320,7 @@ class AddSimpleTube(bpy.types.Operator):
 
         col = layout.column()
         col.prop(self, "trigger_bool_reset_radii", text="Reset radii", toggle=True)
-        col.prop(self, "trigger_bool_make_real", text="To Mesh", toggle=True)
+        # col.prop(self, "trigger_bool_make_real", text="To Mesh", toggle=True)
 
     def initialize_new_tube(self, context):
 
@@ -394,21 +394,21 @@ class AddSimpleTube(bpy.types.Operator):
 
         return self.are_two_objects_in_editmode()
 
-    def make_real(self):
-        objects = bpy.data.objects
-        obj = objects[self.generated_name]  # this curve object
+    # def make_real(self):
+    #     objects = bpy.data.objects
+    #     obj = objects[self.generated_name]  # this curve object
 
-        settings = False
-        modifiers = True
-        obj_data = obj.to_mesh() # bpy.context.depsgraph, apply_modifiers=modifiers, calc_undeformed=settings)
+    #     obj_data = obj.to_mesh() # bpy.context.depsgraph, apply_modifiers=modifiers, calc_undeformed=settings)
 
-        obj_n = objects.new('MESHED_' + obj.name, obj_data)
-        obj_n.location = (0, 0, 0)
-        obj_n.matrix_world = obj.matrix_world.copy()
-        bpy.context.collection.objects.link(obj_n)
-        obj.hide_render = True
-        obj.hide_viewport = True
-        # return obj_n
+    #     obj_n = objects.new('MESHED_' + obj.name, obj_data)
+    #     obj_n.location = (0, 0, 0)
+    #     obj_n.matrix_world = obj.matrix_world.copy()
+    #     bpy.context.collection.objects.link(obj_n)
+    #     # bpy.ops.object.convert(target='MESH')
+
+    #     obj.hide_render = True
+    #     obj.hide_viewport = True
+    #     return obj_n
 
     def execute(self, context):
 
