@@ -392,7 +392,7 @@ class AddSimpleTube(bpy.types.Operator):
         if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
             return True
 
-        return self.are_two_objects_in_editmode()
+        return AddSimpleTube.are_two_objects_in_editmode(None)
 
     # def make_real(self):
     #     objects = bpy.data.objects
