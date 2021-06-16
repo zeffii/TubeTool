@@ -15,10 +15,7 @@ from bpy.props import (
     IntProperty, FloatProperty, StringProperty, BoolProperty
 )
 
-def are_two_objects_in_editmode(objs):
-    if objs and len(objs) == 2:
-        if all((obj.type == "MESH" and obj.mode == "EDIT") for obj in objs):
-            return True
+
 
 current_mode = {}
 
@@ -223,8 +220,6 @@ def update_simple_tube(oper, context):
 
         pointA, pointB = [0, -1] if not oper.flip_v else [-1, 0]
 
-        ''' the radii stuff must be tidier before merge to master. '''
-
         # Point 0
         ''' default scale or radius point1 == 1 '''
         point1 = polyline.bezier_points[pointA]
@@ -289,10 +284,15 @@ class AddSimpleTube(bpy.types.Operator):
     flip_u: BoolProperty()
 
     equal_radii: BoolProperty(default=0)
-    # joined = BoolProperty(default=0)
 
     do_not_process: BoolProperty(default=False)
     initialized_curve: BoolProperty(default=False)
+
+    def are_two_objects_in_editmode(self):
+        objs = bpy.context.selected_objects
+        if objs and len(objs) == 2:
+            if all((obj.type == "MESH" and obj.mode == "EDIT") for obj in objs):
+                return True
 
     def draw(self, context):
         layout = self.layout
@@ -367,7 +367,7 @@ class AddSimpleTube(bpy.types.Operator):
 
         scn = bpy.context.scene
         obj_main = bpy.context.edit_object
-        objects_main = bpy.context.selected_objects if are_two_objects_in_editmode(bpy.context.selected_objects) else None
+        objects_main = bpy.context.selected_objects if self.are_two_objects_in_editmode() else None
 
         self_id = hash(self)
         current_mode[self_id] = None
@@ -426,7 +426,7 @@ class AddSimpleTube(bpy.types.Operator):
         if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
             return True
 
-        return are_two_objects_in_editmode(bpy.context.selected_objects)
+        return self.are_two_objects_in_editmode()
 
     def make_real(self):
         objects = bpy.data.objects
