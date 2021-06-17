@@ -385,14 +385,15 @@ class AddSimpleTube(bpy.types.Operator):
 
 
     @classmethod
-    def poll(self, context):
+    def poll(cls, context):
         # return self.do_not_process
         obj = bpy.context.edit_object
         print(f"faces={obj.data.total_face_sel}, verts={obj.data.total_vert_sel}")
         if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
             return True
 
-        return AddSimpleTube.are_two_objects_in_editmode(None)
+        # return AddSimpleTube.are_two_objects_in_editmode(None)  # __class__.are_two_objects_in_editmode(None) ?
+        return __class__.are_two_objects_in_editmode(None)
 
     # def make_real(self):
     #     objects = bpy.data.objects
