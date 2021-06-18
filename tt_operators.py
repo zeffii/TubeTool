@@ -16,6 +16,23 @@ from bpy.props import IntProperty, FloatProperty, StringProperty, BoolProperty
 current_mode = {}
 docstring = """select two verts or polygons only, then run this operator. selections can be on separate objects."""
 
+def solve_mode_from_current_state():
+    descriptor = {
+        'objs': [],
+        'mode': ""
+    }
+    if one_object_selected():
+        # possible modes : between verts, between faces
+        ...
+    if two_objects_selected(): 
+        # [ ] do both objects have selections?
+        # [ ] if both objects, proceed normal code
+        # [ ] else proceed only using one object
+        ...
+    else:
+        # no supported mode
+        ...
+
 
 def median(face):
     return face.calc_center_median()
@@ -389,7 +406,7 @@ class AddSimpleTube(bpy.types.Operator):
         # return self.do_not_process
         obj = bpy.context.edit_object
         print(f"faces={obj.data.total_face_sel}, verts={obj.data.total_vert_sel}")
-        if obj and obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2:
+        if obj and (obj.data.total_face_sel == 2 or obj.data.total_vert_sel == 2):
             return True
 
         # return AddSimpleTube.are_two_objects_in_editmode(None)  # __class__.are_two_objects_in_editmode(None) ?
