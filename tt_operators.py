@@ -19,20 +19,15 @@ docstring = """select two verts or polygons only, then run this operator. select
 def solve_mode_from_current_state():
     descriptor = {
         'objs': [],
-        'mode': ""
+        'mode': None
     }
-    if one_object_selected():
-        # possible modes : between verts, between faces
-        ...
-    if two_objects_selected(): 
-        # [ ] do both objects have selections?
-        # [ ] if both objects, proceed normal code
-        # [ ] else proceed only using one object
-        ...
-    else:
-        # no supported mode
-        ...
+    in_edit_mode = bpy.context.edit_object
+    if not in_edit_mode:
+        return None
 
+    # can have multiple objects in edit mode.. i dont care how many
+    # but there can only be 2 sets of geometry selected at once.
+    num_objects_in_edit_mode = len(bpy.context.selected_objects)
 
 def median(face):
     return face.calc_center_median()
